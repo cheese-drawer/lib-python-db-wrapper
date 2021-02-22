@@ -132,6 +132,8 @@ a_model = Model[AModel](client, 'a_table_name')
 From there, you can query your new `Model` by calling CRUD methods on the instance:
 
 ```python
+from typing import List
+
 # ...
 
 async get_some_record() -> List[AModel]:

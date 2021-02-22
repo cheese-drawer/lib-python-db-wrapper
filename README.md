@@ -134,6 +134,6 @@ From there, you can query your new `Model` by calling CRUD methods on the instan
 ```python
 # ...
 
-async get_some_record() -> None:
-    result = await a_model.read.one_by_id('some record id')
+async get_some_record() -> List[AModel]:
+    return await a_model.read.one_by_id('some record id')  # NOTE: in reality the id would be a UUID
 ```

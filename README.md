@@ -42,6 +42,7 @@ import asyncio
 
 # ...
 
+
 async def a_query() -> None:
     # we'll come back to this part
     # just know that it usins async/await to call Client.execute_and_return
@@ -65,6 +66,7 @@ Finally, lets define our query to just get a list of all the tables in our datab
 import asyncio
 
 # ...
+
 
 async def a_query() -> None:
     query = 'SELECT table_name' \
@@ -92,6 +94,7 @@ To define a `Model`'s expected type, you simply need to subclass `ModelData` & s
 
 ```python
 from db_wrapper import ModelData
+
 
 class AModel(ModelData):
     a_string_value: str
@@ -123,6 +126,7 @@ from db_wrapper import (
 connection_parameters = ConnectionParameters(...)
 client = Client(...)
 
+
 class AModel(ModelData):
     # ...
 
@@ -136,6 +140,73 @@ from typing import List
 
 # ...
 
+
 async get_some_record() -> List[AModel]:
     return await a_model.read.one_by_id('some record id')  # NOTE: in reality the id would be a UUID
+```
+
+Of course, just having methods for creating, reading, updating, or deleting a single record at a time often won't be enough.
+Adding additional queries is accomplished by extending Model's CRUD properties.
+
+For example, if you want to write an additional query for reading any record that that has a value of `'some value'` in the field `a_field`, you would start by subclassing `Read`, the class that `Model.read` is an instance of:
+
+```python
+from db_wrapper import ModelData
+from db_wrapper.model import Read
+from psycopg2 import sql
+
+# ...
+
+
+class AnotherModel(ModelData):
+    a_field: str
+
+
+class ExtendedReader(Read[AnotherModel]):
+    """Add custom method to Model.read."""
+
+    async def all_with_some_string_value(self) -> List[AnotherModel]:
+        """Read all rows with 'some value' for a_field."""
+
+        # Because db_wrapper uses aiopg under the hood, & aiopg uses
+        # psycopg2, we can define our queries safely using psycopg2's
+        # sql module
+        query = sql.SQL(
+            'SELECT * '
+            'FROM {table} '  # a Model knows it's own table name, no need to specify it manually here
+            'WHERE a_field = 'some value';'
+        ).format(table=self._table)
+
+        result: List[AnotherModel] = await self \
+            ._client.execute_and_return(query)
+
+        return result
+```
+
+Then, you would subclass `Model` & redefine it's read property to be an instance of your new `ExtendedReader` class:
+
+```python
+from db_wrapper import Client, Model, ModelData
+
+# ...
+
+class ExtendedModel(Model[AnotherModel]):
+    """Build an AnotherModel instance."""
+
+    read: ExtendedReader
+
+    def __init__(self, client: Client) -> None:
+        super().__init__(client, 'another_model_table')  # you can supply your table name here
+        self.read = ExtendedReader(self.client, self.table)
+```
+
+Finally, using your `ExtendedModel` is simple, just initialize the class with a `Client` instance & use it just as you would your previous `Model` instance, `a_model`:
+
+```python
+# ...
+
+another_model = AnotherModel(client)
+
+async def read_some_value_from_another_model() -> None:
+    return await another_model.all_with_some_string_value()
 ```

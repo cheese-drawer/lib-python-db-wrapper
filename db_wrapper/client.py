@@ -105,9 +105,5 @@ class Client:
         async with self._connection.cursor() as cursor:
             await self._execute_query(cursor, query, params)
 
-            result = []
-
-            async for row in cursor:
-                result.append(row)
-
+            result: List[T] = await cursor.fetchall()
             return result

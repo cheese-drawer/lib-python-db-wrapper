@@ -63,18 +63,15 @@ class Create(Generic[T]):
     async def one(self, item: T) -> T:
         """Create one new record with a given item."""
         columns: List[sql.Identifier] = []
-        values: List[sql.Identifier] = []
+        values: List[sql.Literal] = []
 
         for column, value in item.items():
-            if column == '_id':
-                values.append(sql.Identifier(str(value)))
-            else:
-                values.append(sql.Identifier(value))
+            values.append(sql.Literal(value))
 
             columns.append(sql.Identifier(column))
 
         query = sql.SQL(
-            'INSERT INTO {table}({columns}) '
+            'INSERT INTO {table} ({columns}) '
             'VALUES ({values}) '
             'RETURNING *;'
         ).format(
@@ -103,10 +100,10 @@ class Read(Generic[T]):
         query = sql.SQL(
             'SELECT * '
             'FROM {table} '
-            'WHERE id = {id_value};'
+            'WHERE _id = {id_value};'
         ).format(
             table=self._table,
-            id_value=sql.Identifier(id_value)
+            id_value=sql.Literal(id_value)
         )
 
         result: List[T] = await self._client.execute_and_return(query)
@@ -178,7 +175,7 @@ class Delete(Generic[T]):
         self._client = client
         self._table = table
 
-    async def one(self, id_value: str) -> T:
+    async def one_by_id(self, id_value: str) -> T:
         """Delete one record with matching ID."""
         query = sql.SQL(
             'DELETE FROM {table} '

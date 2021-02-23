@@ -73,7 +73,7 @@ class TestReadOneById(TestCase):
 
         self.assertEqual(query, "SELECT * "
                                 "FROM test "
-                                f"WHERE id = {item['_id']};")
+                                f"WHERE _id = {item['_id']};")
 
     @helpers.async_test
     async def test_it_returns_a_single_result(self) -> None:
@@ -122,7 +122,7 @@ class TestCreateOne(TestCase):
             helpers.AsyncMock, client.execute_and_return).call_args[0][0]
         query = helpers.composed_to_string(query_composed)
 
-        self.assertEqual(query, 'INSERT INTO test(_id,a,b) '
+        self.assertEqual(query, 'INSERT INTO test (_id,a,b) '
                                 f"VALUES ({item['_id']},a,b) "
                                 'RETURNING *;')
 
@@ -206,7 +206,7 @@ class TestDeleteOneById(TestCase):
         }
         model, client = setup([item])
 
-        await model.delete.one(str(item['_id']))
+        await model.delete.one_by_id(str(item['_id']))
 
         query_composed = cast(
             helpers.AsyncMock, client.execute_and_return).call_args[0][0]
@@ -225,7 +225,7 @@ class TestDeleteOneById(TestCase):
         }
         model, _ = setup([item])
 
-        result = await model.delete.one(str(item['_id']))
+        result = await model.delete.one_by_id(str(item['_id']))
 
         self.assertEqual(result, item)
 

@@ -1,0 +1,2 @@
+psycopg2-binary>=2.8.6,<3.0.0
+https://github.com/cheese-drawer/lib-python-db-wrapper/releases/download/0.1.0/db-wrapper-0.1.0.tar.gz

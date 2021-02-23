@@ -1,11 +1,14 @@
 import setuptools
 
+with open("app-version", "r", encoding="utf-8") as fh:
+    version = fh.read()
+
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="db_wrapper",
-    version="0.1.0-alpha",
+    version=version,
     author="Andrew Chang-DeWitt",
     author_email="andrew@andrew-chang-dewitt.dev",
     description="Simple wrapper on aiopg to handle postgres connections & basic Models.",

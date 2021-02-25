@@ -9,10 +9,10 @@ Install with `pip` from releases on this repo.
 For example, you can install version 0.1.0 with the following command:
 
 ```
-$ pip install https://github.com/cheese-drawer/lib-python-db-wrapper/releases/download/0.1.1/db-wrapper-0.1.1.tar.gz
+$ pip install https://github.com/cheese-drawer/lib-python-db-wrapper/releases/download/0.1.2/db-wrapper-0.1.2.tar.gz
 ```
 
-If looking for a different release version, just replace the two instances of `0.1.1` in the command with the version number you need.
+If looking for a different release version, just replace the two instances of `0.1.2` in the command with the version number you need.
 
 ## Usage
 

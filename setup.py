@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="db_wrapper",
-    version="0.1.1",
+    version="0.1.2",
     author="Andrew Chang-DeWitt",
     author_email="andrew@andrew-chang-dewitt.dev",
     description="Simple wrapper on aiopg to handle postgres connections & basic Models.",
@@ -14,7 +14,7 @@ setuptools.setup(
     url="https://github.com/cheese-drawer/lib-python-db-wrapper/",
     packages=setuptools.find_packages(),
     package_data={
-        'db-wrapper': ['py.typed']},
+        'db_wrapper': ['py.typed']},
     install_requires=[
         'aiopg>=1.1.0,<2.0.0',
     ],

@@ -12,7 +12,9 @@ cd ..
 eval "$(direnv export bash)"
 
 prefix="dist/db_wrapper-"
-current_version=`cat app-version`
+_current_version_raw=`rg version setup.py`
+_current_version_prefix_trimmed=${_current_version_raw#"    version=\""}
+current_version=${_current_version_prefix_trimmed%"\","}
 
 # ../dist/db_wrapper-0.1.0a0-py3-none-any.whl
 # ../dist/db_wrapper-0.1.0a0.tar.gz

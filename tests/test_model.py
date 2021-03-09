@@ -161,14 +161,14 @@ class TestUpdateOne(TestCase):
         updated = cast(TestUpdateOne.Item, {**item, 'b': 'c'})
         model, client = setup([updated])
 
-        await model.update.one(str(item['_id']), {'b': 'c'})
+        await model.update.one_by_id(str(item['_id']), {'b': 'c'})
         query_composed = cast(
             helpers.AsyncMock, client.execute_and_return).call_args[0][0]
         query = helpers.composed_to_string(query_composed)
 
         self.assertEqual(query, 'UPDATE test '
                                 'SET b = c '
-                                f"WHERE id = {item['_id']} "
+                                f"WHERE _id = {item['_id']} "
                                 'RETURNING *;')
 
     @helpers.async_test
@@ -184,13 +184,13 @@ class TestUpdateOne(TestCase):
         updated = cast(TestUpdateOne.Item, {**item, 'b': 'c'})
         model, _ = setup([updated])
 
-        result = await model.update.one(str(item['_id']), {'b': 'c'})
+        result = await model.update.one_by_id(str(item['_id']), {'b': 'c'})
 
         self.assertEqual(result, updated)
 
 
 class TestDeleteOneById(TestCase):
-    """Testing Model.update.one_by_id"""
+    """Testing Model.delete.one_by_id"""
 
     class Item(ModelData):
         """Example ModelData Item for testing."""

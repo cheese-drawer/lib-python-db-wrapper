@@ -127,7 +127,7 @@ class Update(Generic[T]):
         self._client = client
         self._table = table
 
-    async def one(self, id_value: str, changes: Dict[str, Any]) -> T:
+    async def one_by_id(self, id_value: str, changes: Dict[str, Any]) -> T:
         """Apply changes to row with given id.
 
         Arguments:

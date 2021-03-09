@@ -143,7 +143,7 @@ class Update(Generic[T]):
             value = change[1]
 
             return sql.SQL("{key} = {value}").format(
-                key=sql.Identifier(key), value=sql.Identifier(value))
+                key=sql.Identifier(key), value=sql.Literal(value))
 
         def compose_changes(changes: Dict[str, Any]) -> sql.Composed:
             return sql.SQL(',').join(
@@ -157,7 +157,7 @@ class Update(Generic[T]):
         ).format(
             table=self._table,
             changes=compose_changes(changes),
-            id_value=sql.Identifier(id_value),
+            id_value=sql.Literal(id_value),
         )
 
         result: List[T] = await self._client.execute_and_return(query)
@@ -183,7 +183,7 @@ class Delete(Generic[T]):
             'RETURNING *;'
         ).format(
             table=self._table,
-            id_value=sql.Identifier(id_value)
+            id_value=sql.Literal(id_value)
         )
 
         result: List[T] = await self._client.execute_and_return(query)

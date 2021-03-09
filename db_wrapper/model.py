@@ -152,7 +152,7 @@ class Update(Generic[T]):
         query = sql.SQL(
             'UPDATE {table} '
             'SET {changes} '
-            'WHERE id = {id_value} '
+            'WHERE _id = {id_value} '
             'RETURNING *;'
         ).format(
             table=self._table,

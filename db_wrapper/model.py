@@ -13,18 +13,21 @@ from typing import (
 )
 from uuid import UUID
 
+# third party dependencies
+from pydantic import BaseModel
+
 # internal dependency
 from .client import Client, sql
 
 
-class ModelData(TypedDict):
+class ModelData(BaseModel):
     """Base interface for ModelData to be used in Model."""
 
     # PENDS python 3.9 support in pylint
     # pylint: disable=inherit-non-class
     # pylint: disable=too-few-public-methods
 
-    _id: UUID
+    id: UUID
 
 
 # Generic doesn't need a more descriptive name
@@ -65,7 +68,7 @@ class Create(Generic[T]):
         columns: List[sql.Identifier] = []
         values: List[sql.Literal] = []
 
-        for column, value in item.items():
+        for column, value in item.dict().items():
             values.append(sql.Literal(value))
 
             columns.append(sql.Identifier(column))
@@ -100,7 +103,7 @@ class Read(Generic[T]):
         query = sql.SQL(
             'SELECT * '
             'FROM {table} '
-            'WHERE _id = {id_value};'
+            'WHERE id = {id_value};'
         ).format(
             table=self._table,
             id_value=sql.Literal(id_value)
@@ -152,7 +155,7 @@ class Update(Generic[T]):
         query = sql.SQL(
             'UPDATE {table} '
             'SET {changes} '
-            'WHERE _id = {id_value} '
+            'WHERE id = {id_value} '
             'RETURNING *;'
         ).format(
             table=self._table,

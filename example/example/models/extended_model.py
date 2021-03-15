@@ -23,7 +23,7 @@ class ExtendedModelData(ModelData):
 
     string: str
     integer: int
-    json: Dict[str, Any]
+    data: Dict[str, Any]
 
 
 class ExtendedCreator(Create[ExtendedModelData]):
@@ -34,10 +34,10 @@ class ExtendedCreator(Create[ExtendedModelData]):
     async def one(self, item: ExtendedModelData) -> ExtendedModelData:
         """Override default Model.create.one method."""
         columns: List[sql.Identifier] = []
-        values: List[sql.Identifier] = []
+        values: List[sql.Literal] = []
 
-        for column, value in item.items():
-            if column == 'json':
+        for column, value in item.dict().items():
+            if column == 'data':
                 values.append(sql.Literal(json.dumps(value)))
             else:
                 values.append(sql.Literal(value))

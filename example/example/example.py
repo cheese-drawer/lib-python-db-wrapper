@@ -41,16 +41,16 @@ async def create_a_model_record() -> UUID:
 
     Create a new record using the default Model.create.one method.
     """
-    new_record: AModel = {
-        '_id': uuid4(),
+    new_record = AModel(**{
+        'id': uuid4(),
         'string': 'some string',
         'integer': 1,
         'array': ['an', 'array', 'of', 'strings'],
-    }
+    })
 
     await a_model.create.one(new_record)
 
-    return new_record['_id']
+    return new_record.id
 
 
 async def read_a_model(id_value: UUID) -> AModel:
@@ -62,27 +62,30 @@ async def read_a_model(id_value: UUID) -> AModel:
 
 async def create_extended_models() -> None:
     """Show how using an extended Model can be the same as the defaults."""
-    new_records: List[ExtendedModelData] = [{
-        '_id': uuid4(),
+    dicts = [{
+        'id': uuid4(),
         'string': 'something',
         'integer': 1,
-        'json': {'a': 1, 'b': 2, 'c': True}
+        'data': {'a': 1, 'b': 2, 'c': True}
     }, {
-        '_id': uuid4(),
+        'id': uuid4(),
         'string': 'something',
         'integer': 1,
-        'json': {'a': 1, 'b': 2, 'c': True}
+        'data': {'a': 1, 'b': 2, 'c': True}
     }, {
-        '_id': uuid4(),
+        'id': uuid4(),
         'string': 'something',
         'integer': 1,
-        'json': {'a': 1, 'b': 2, 'c': True}
+        'data': {'a': 1, 'b': 2, 'c': True}
     }, {
-        '_id': uuid4(),
+        'id': uuid4(),
         'string': 'something',
         'integer': 1,
-        'json': {'a': 1, 'b': 2, 'c': True}
+        'data': {'a': 1, 'b': 2, 'c': True}
     }]
+
+    new_records: List[ExtendedModelData] = [
+        ExtendedModelData(**record) for record in dicts]
 
     # by looping over a list of records, you can use the default create.one
     # method to create each record as a separate transaction
@@ -100,8 +103,14 @@ async def read_extended_models() -> List[ExtendedModelData]:
 
 async def run() -> None:
     """Show how to make a connection, execute queries, & disconnect."""
+
+    # First, have the client make a connection to the database
     await client.connect()
 
+    # Then, execute queries using the models that were initialized
+    # with the client above.
+    # Doing this inside a try/finally block allows client to gracefully
+    # disconnect even when an exception is thrown.
     try:
         new_id = await create_a_model_record()
         created_a_model = await read_a_model(new_id)
@@ -110,6 +119,7 @@ async def run() -> None:
     finally:
         await client.disconnect()
 
+    # Print results to stdout
     print(json.dumps(created_a_model, cls=UUIDJsonEncoder))
     print(json.dumps(extended_models, cls=UUIDJsonEncoder))
 

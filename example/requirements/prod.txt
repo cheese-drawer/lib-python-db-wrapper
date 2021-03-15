@@ -1,2 +1,2 @@
 psycopg2-binary>=2.8.6,<3.0.0
-https://github.com/cheese-drawer/lib-python-db-wrapper/releases/download/2.0.0-alpha/db_wrapper-2.0.0a0-py3-none-any.whl
+https://github.com/cheese-drawer/lib-python-db-wrapper/releases/download/2.0.1/db_wrapper-2.0.1-py3-none-any.whl

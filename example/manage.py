@@ -14,11 +14,11 @@ import sys
 import time
 from typing import Any, Optional, Generator, List, Tuple
 
-from migra import Migration  # type: ignore
+from migra import Migration
 from psycopg2 import connect, OperationalError  # type: ignore
 from psycopg2 import sql
 from psycopg2.sql import Composed
-from sqlbag import (  # type: ignore
+from sqlbag import (
     S,
     load_sql_from_folder)
 
@@ -170,13 +170,13 @@ def _get_schema_diff(
 def _temp_db(host: str, user: str, password: str) -> Generator[str, Any, Any]:
     """Create, yield, & remove a temporary database as context."""
     connection = _resilient_connect(
-        f'postgres://{user}:{password}@{host}/{DB_NAME}')
+        f'postgresql://{user}:{password}@{host}/{DB_NAME}')
     connection.set_session(autocommit=True)
     name = _temp_name()
 
     with connection.cursor() as cursor:
         _create_db(cursor, name)
-        yield f'postgres://{user}:{password}@{host}/{name}'
+        yield f'postgresql://{user}:{password}@{host}/{name}'
         _drop_db(cursor, name)
 
     connection.close()

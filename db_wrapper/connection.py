@@ -47,7 +47,7 @@ async def _try_connect(
     connection: Optional[aiopg.Connection] = None
 
     LOGGER.info(
-        f'Attempting to connect to database {database} as {user}@{host}...')
+        f'Attempting to connect to database {database} as {user}@{host}:{port}...')
 
     while connection is None:
         try:

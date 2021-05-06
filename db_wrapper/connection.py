@@ -24,6 +24,7 @@ class ConnectionParameters:
     """Defines connection parameters for database."""
 
     host: str
+    port: int
     user: str
     password: str
     database: str
@@ -37,8 +38,9 @@ async def _try_connect(
     user = connection_params.user
     password = connection_params.password
     host = connection_params.host
+    port = connection_params.port
 
-    dsn = f'dbname={database} user={user} password={password} host={host}'
+    dsn = f'dbname={database} user={user} password={password} host={host} port={port}'
 
     # PENDS python 3.9 support in pylint
     # pylint: disable=unsubscriptable-object

@@ -44,5 +44,5 @@ def async_test(
 
 def get_client() -> Client:
     """Create a client with placeholder connection data."""
-    conn_params = ConnectionParameters('a', 'a', 'a', 'a')
+    conn_params = ConnectionParameters('a', 'a', 'a', 'a', 'a')
     return Client(conn_params)

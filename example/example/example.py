@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import os
 from uuid import uuid4, UUID
 from typing import Any, List
@@ -9,6 +10,8 @@ from typing import Any, List
 from db_wrapper import ConnectionParameters, Client, Model
 
 from models import AModel, ExtendedModel, ExtendedModelData
+
+logging.basicConfig(level=logging.INFO)
 
 
 class UUIDJsonEncoder(json.JSONEncoder):
@@ -23,6 +26,7 @@ class UUIDJsonEncoder(json.JSONEncoder):
 
 conn_params = ConnectionParameters(
     host=os.getenv('DB_HOST', 'localhost'),
+    port=int(os.getenv('DB_PORT', '5432')),
     # user=os.getenv('DB_USER', 'postgres'),
     # password=os.getenv('DB_PASS', 'postgres'),
     # database=os.getenv('DB_NAME', 'postgres'))

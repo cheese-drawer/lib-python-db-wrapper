@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="db_wrapper",
-    version="2.0.1",
+    version="2.0.2",
     author="Andrew Chang-DeWitt",
     author_email="andrew@andrew-chang-dewitt.dev",
     description="Simple wrapper on aiopg to handle postgres connections & basic Models.",

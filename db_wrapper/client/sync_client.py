@@ -12,7 +12,8 @@ from typing import (
 
 from psycopg2.extras import register_uuid
 from psycopg2 import sql
-from psycopg2._psycopg import cursor
+# pylint can't seem to find the items in psycopg2 despite being available
+from psycopg2._psycopg import cursor  # pylint: disable=no-name-in-module
 
 from db_wrapper.connection import (
     sync_connect,
@@ -54,14 +55,14 @@ class SyncClient:
 
     @staticmethod
     def _execute_query(
-        cursor: cursor,
+        db_cursor: cursor,
         query: Query,
         params: Optional[Dict[Hashable, Any]] = None,
     ) -> None:
         if params:
-            cursor.execute(query, params)  # type: ignore
+            db_cursor.execute(query, params)  # type: ignore
         else:
-            cursor.execute(query)
+            db_cursor.execute(query)
 
     def execute(
         self,
@@ -78,8 +79,8 @@ class SyncClient:
         Returns:
             None
         """
-        with self._connection.cursor() as cursor:
-            self._execute_query(cursor, query, params)
+        with self._connection.cursor() as db_cursor:
+            self._execute_query(db_cursor, query, params)
 
     def execute_and_return(
         self,
@@ -96,8 +97,8 @@ class SyncClient:
         Returns:
             List containing all the rows that matched the query.
         """
-        with self._connection.cursor() as cursor:
-            self._execute_query(cursor, query, params)
+        with self._connection.cursor() as db_cursor:
+            self._execute_query(db_cursor, query, params)
 
-            result: List[T] = cursor.fetchall()
+            result: List[T] = db_cursor.fetchall()
             return result

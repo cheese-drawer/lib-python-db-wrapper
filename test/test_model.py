@@ -20,13 +20,16 @@ from unittest import TestCase
 
 import helpers
 
-from db_wrapper.client import Client
+from db_wrapper.client import AsyncClient
 from db_wrapper.model import (
-    Model,
     ModelData,
-    Read,
+    AsyncModel,
+    AsyncRead
+)
+from db_wrapper.model.base import (
     UnexpectedMultipleResults,
-    NoResultFound)
+    NoResultFound,
+)
 
 
 # Generic doesn't need a more descriptive name
@@ -34,7 +37,7 @@ from db_wrapper.model import (
 T = TypeVar('T', bound=ModelData)
 
 
-def setup(query_result: List[T]) -> Tuple[Model[T], Client]:
+def setup(query_result: List[T]) -> Tuple[AsyncModel[T], AsyncClient]:
     """Setup helper that returns instances of both a Model & a Client.
 
     Mocks the execute_and_return method on the Client instance to skip
@@ -53,7 +56,7 @@ def setup(query_result: List[T]) -> Tuple[Model[T], Client]:
         return_value=query_result)
 
     # init model with mocked client
-    model = Model[Any](client, 'test')
+    model = AsyncModel[Any](client, 'test')
 
     return model, client
 
@@ -92,7 +95,7 @@ class TestReadOneById(TestCase):
 
     @ helpers.async_test
     async def test_it_raises_exception_if_no_result_to_return(self) -> None:
-        model: Model[ModelData]
+        model: AsyncModel[ModelData]
         model, _ = setup([])
 
         with self.assertRaises(NoResultFound):
@@ -231,16 +234,16 @@ class TestDeleteOneById(TestCase):
 
 class TestExtendingModel(TestCase):
     """Testing Model's extensibility."""
-    model: Model[ModelData]
+    model: AsyncModel[ModelData]
 
     def setUp(self) -> None:
-        class ReadExtended(Read[ModelData]):
+        class ReadExtended(AsyncRead[ModelData]):
             """Extending Read with additional query."""
 
             def new_query(self) -> None:
                 pass
 
-        model = Model[ModelData](helpers.get_client(), 'test')
+        model = AsyncModel[ModelData](helpers.get_client(), 'test')
         model.read = ReadExtended(model.client, model.table)
 
         self.model = model

@@ -10,7 +10,7 @@ from typing import (
 from unittest.mock import MagicMock
 
 from db_wrapper.connection import ConnectionParameters
-from db_wrapper.client import Client
+from db_wrapper.client import AsyncClient
 
 
 def composed_to_string(seq: Iterable[Any]) -> str:
@@ -25,6 +25,7 @@ def composed_to_string(seq: Iterable[Any]) -> str:
 
 class AsyncMock(MagicMock):
     """Extend unittest.mock.MagicMock to allow mocking of async functions."""
+
     # pylint: disable=invalid-overridden-method
     # pylint: disable=useless-super-delegation
 
@@ -42,7 +43,7 @@ def async_test(
     return wrapped
 
 
-def get_client() -> Client:
+def get_client() -> AsyncClient:
     """Create a client with placeholder connection data."""
-    conn_params = ConnectionParameters('a', 'a', 'a', 'a', 'a')
-    return Client(conn_params)
+    conn_params = ConnectionParameters('a', 1, 'a', 'a', 'a')
+    return AsyncClient(conn_params)

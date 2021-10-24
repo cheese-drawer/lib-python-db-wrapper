@@ -14,7 +14,7 @@ from psycopg2.extras import RealDictCursor  # type: ignore
 
 # no stubs available, starting out by just determining correct return
 # types & annotating in my wrappers here
-import aiopg
+import aiopg  # type: ignore
 
 LOGGER = logging.getLogger(__name__)
 
@@ -83,9 +83,7 @@ def _sync_try_connect(
 
     dsn = f'dbname={database} user={user} password={password} host={host} port={port}'
 
-    # PENDS python 3.9 support in pylint
-    # pylint: disable=unsubscriptable-object
-    connection: Optional[aiopg.Connection] = None
+    connection: Optional[Any] = None
 
     LOGGER.info(
         f'Attempting to connect to database {database} as {user}@{host}:{port}...')
@@ -121,7 +119,7 @@ async def connect(
     return await _try_connect(connection_params)
 
 
-async def sync_connect(
+def sync_connect(
     connection_params: ConnectionParameters
 ) -> Any:
     """Establish database connection."""

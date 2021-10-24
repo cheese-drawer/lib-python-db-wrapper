@@ -10,7 +10,7 @@ from typing import (
     List,
     Dict)
 
-import aiopg  # type: ignore
+import aiopg
 from psycopg2.extras import register_uuid
 from psycopg2 import sql
 
@@ -58,9 +58,12 @@ class AsyncClient:
         params: Optional[Dict[Hashable, Any]] = None,
     ) -> None:
         if params:
-            await cursor.execute(query, params)
+            # aiopg incorrectly limits queries to 'str' type
+            # when execution is deferred to psycopg2, which
+            # allows strings or sql.Composed objects
+            await cursor.execute(query, params)  # type: ignore
         else:
-            await cursor.execute(query)
+            await cursor.execute(query)  # type: ignore
 
     # PENDS python 3.9 support in pylint
     # pylint: disable=unsubscriptable-object

@@ -12,9 +12,7 @@ from psycopg2 import (  # type: ignore
 )
 from psycopg2.extras import RealDictCursor  # type: ignore
 
-# no stubs available, starting out by just determining correct return
-# types & annotating in my wrappers here
-import aiopg  # type: ignore
+import aiopg
 
 LOGGER = logging.getLogger(__name__)
 
@@ -40,14 +38,15 @@ async def _try_connect(
     host = connection_params.host
     port = connection_params.port
 
-    dsn = f'dbname={database} user={user} password={password} host={host} port={port}'
+    dsn = f"dbname={database} user={user} password={password} " \
+          f"host={host} port={port}"
 
     # PENDS python 3.9 support in pylint
     # pylint: disable=unsubscriptable-object
     connection: Optional[aiopg.Connection] = None
 
-    LOGGER.info(
-        f'Attempting to connect to database {database} as {user}@{host}:{port}...')
+    LOGGER.info(f"Attempting to connect to database {database} as "
+                f"{user}@{host}:{port}...")
 
     while connection is None:
         try:
@@ -58,12 +57,12 @@ async def _try_connect(
             print(type(err))
             if retries > 12:
                 raise ConnectionError(
-                    'Max number of connection attempts has been reached (12)'
+                    "Max number of connection attempts has been reached (12)"
                 ) from err
 
             LOGGER.info(
-                f'Connection failed ({retries} time(s))'
-                'retrying again in 5 seconds...')
+                f"Connection failed ({retries} time(s))"
+                "retrying again in 5 seconds...")
 
             await asyncio.sleep(5)
             return await _try_connect(connection_params, retries + 1)
@@ -81,12 +80,13 @@ def _sync_try_connect(
     host = connection_params.host
     port = connection_params.port
 
-    dsn = f'dbname={database} user={user} password={password} host={host} port={port}'
+    dsn = f"dbname={database} user={user} password={password} " + \
+          f"host={host} port={port}"
 
     connection: Optional[Any] = None
 
-    LOGGER.info(
-        f'Attempting to connect to database {database} as {user}@{host}:{port}...')
+    LOGGER.info(f"Attempting to connect to database {database} "
+                f"as {user}@{host}:{port}...")
 
     while connection is None:
         try:
@@ -97,12 +97,12 @@ def _sync_try_connect(
             print(type(err))
             if retries > 12:
                 raise ConnectionError(
-                    'Max number of connection attempts has been reached (12)'
+                    "Max number of connection attempts has been reached (12)"
                 ) from err
 
             LOGGER.info(
-                f'Connection failed ({retries} time(s))'
-                'retrying again in 5 seconds...')
+                f"Connection failed ({retries} time(s))"
+                "retrying again in 5 seconds...")
 
             time.sleep(5)
             return _sync_try_connect(connection_params, retries + 1)

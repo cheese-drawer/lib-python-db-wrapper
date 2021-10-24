@@ -18,6 +18,5 @@ class.ModelData:
     Model instance.
 """
 from .connection import ConnectionParameters
-from .client import Client
-from .sync_client import Client as SyncClient
-from .model import Model, ModelData
+from .client import AsyncClient, SyncClient
+from .model import AsyncModel, SyncModel, ModelData

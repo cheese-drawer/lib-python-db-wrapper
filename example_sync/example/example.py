@@ -6,12 +6,13 @@ import os
 from uuid import uuid4, UUID
 from typing import Any, List
 
-from db_wrapper import ConnectionParameters, SyncClient, Model
+from db_wrapper import SyncClient, ConnectionParameters
+from db_wrapper.model import SyncModel as Model
 
 from models import (
     AModel,
-    # ExtendedModel,
-    # ExtendedModelData,
+    ExtendedModel,
+    ExtendedModelData,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -39,7 +40,7 @@ conn_params = ConnectionParameters(
 client = SyncClient(conn_params)
 
 a_model = Model[AModel](client, 'a_model')
-# extended_model = ExtendedModel(client)
+extended_model = ExtendedModel(client)
 
 
 def create_a_model_record() -> UUID:
@@ -67,50 +68,49 @@ def read_a_model(id_value: UUID) -> AModel:
     return a_model.read.one_by_id(str(id_value))
 
 
-# def create_extended_models() -> None:
-#     """Show how using an extended Model can be the same as the defaults."""
-#     dicts = [{
-#         'id': uuid4(),
-#         'string': 'something',
-#         'integer': 1,
-#         'data': {'a': 1, 'b': 2, 'c': True}
-#     }, {
-#         'id': uuid4(),
-#         'string': 'something',
-#         'integer': 1,
-#         'data': {'a': 1, 'b': 2, 'c': True}
-#     }, {
-#         'id': uuid4(),
-#         'string': 'something',
-#         'integer': 1,
-#         'data': {'a': 1, 'b': 2, 'c': True}
-#     }, {
-#         'id': uuid4(),
-#         'string': 'something',
-#         'integer': 1,
-#         'data': {'a': 1, 'b': 2, 'c': True}
-#     }]
-# 
-#     new_records: List[ExtendedModelData] = [
-#         ExtendedModelData(**record) for record in dicts]
-# 
-#     # by looping over a list of records, you can use the default create.one
-#     # method to create each record as a separate transaction
-#     for record in new_records:
-#         extended_model.create.one(record)
-# 
-# 
-# def read_extended_models() -> List[ExtendedModelData]:
-#     """Show how to use an extended Model's new methods."""
-#     # We defined read.all in ./models/extended_model.py's ExtendedRead class,
-#     # then replaced ExtendedModel's read property with ExtendedRead.
-#     # As a result, we can call it just like any other method on Model.read.
-#     return extended_model.read.all()
+def create_extended_models() -> None:
+    """Show how using an extended Model can be the same as the defaults."""
+    dicts = [{
+        'id': uuid4(),
+        'string': 'something',
+        'integer': 1,
+        'data': {'a': 1, 'b': 2, 'c': True}
+    }, {
+        'id': uuid4(),
+        'string': 'something',
+        'integer': 1,
+        'data': {'a': 1, 'b': 2, 'c': True}
+    }, {
+        'id': uuid4(),
+        'string': 'something',
+        'integer': 1,
+        'data': {'a': 1, 'b': 2, 'c': True}
+    }, {
+        'id': uuid4(),
+        'string': 'something',
+        'integer': 1,
+        'data': {'a': 1, 'b': 2, 'c': True}
+    }]
+
+    new_records: List[ExtendedModelData] = [
+        ExtendedModelData(**record) for record in dicts]
+
+    # by looping over a list of records, you can use the default create.one
+    # method to create each record as a separate transaction
+    for record in new_records:
+        extended_model.create.one(record)
+
+
+def read_extended_models() -> List[ExtendedModelData]:
+    """Show how to use an extended Model's new methods."""
+    # We defined read.all in ./models/extended_model.py's ExtendedRead class,
+    # then replaced ExtendedModel's read property with ExtendedRead.
+    # As a result, we can call it just like any other method on Model.read.
+    return extended_model.read.all()
 
 
 def run() -> None:
     """Show how to make a connection, execute queries, & disconnect."""
-
     # First, have the client make a connection to the database
     client.connect()
 
@@ -121,8 +121,8 @@ def run() -> None:
     try:
         new_id = create_a_model_record()
         created_a_model = read_a_model(new_id)
-        # create_extended_models()
-        # extended_models = read_extended_models()
+        create_extended_models()
+        extended_models = read_extended_models()
     finally:
         client.disconnect()
 

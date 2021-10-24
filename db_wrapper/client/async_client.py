@@ -10,16 +10,11 @@ from typing import (
     List,
     Dict)
 
+import aiopg  # type: ignore
 from psycopg2.extras import register_uuid
-# importing for the sole purpose of re-exporting
-# pylint: disable=unused-import
 from psycopg2 import sql
-from psycopg2._psycopg import cursor
 
-from .connection import (
-    sync_connect,
-    ConnectionParameters,
-)
+from db_wrapper.connection import ConnectionParameters, connect
 
 # add uuid support to psycopg2 & Postgres
 register_uuid()
@@ -32,7 +27,7 @@ T = TypeVar('T')
 Query = Union[str, sql.Composed]
 
 
-class Client:
+class AsyncClient:
     """Class to manage database connection & expose necessary methods to user.
 
     Stores connection parameters on init, then exposes methods to
@@ -41,31 +36,35 @@ class Client:
     """
 
     _connection_params: ConnectionParameters
-    _connection: Any
+    _connection: aiopg.Connection
 
     def __init__(self, connection_params: ConnectionParameters) -> None:
         self._connection_params = connection_params
 
-    def connect(self) -> None:
+    async def connect(self) -> None:
         """Connect to the database."""
-        self._connection = sync_connect(self._connection_params)
+        self._connection = await connect(self._connection_params)
 
-    def disconnect(self) -> None:
+    async def disconnect(self) -> None:
         """Disconnect from the database."""
-        self._connection.close()
+        await self._connection.close()
 
+    # PENDS python 3.9 support in pylint
+    # pylint: disable=unsubscriptable-object
     @staticmethod
-    def _execute_query(
-        cursor: cursor,
+    async def _execute_query(
+        cursor: aiopg.Cursor,
         query: Query,
         params: Optional[Dict[Hashable, Any]] = None,
     ) -> None:
         if params:
-            cursor.execute(query, params)  # type: ignore
+            await cursor.execute(query, params)
         else:
-            cursor.execute(query)
+            await cursor.execute(query)
 
-    def execute(
+    # PENDS python 3.9 support in pylint
+    # pylint: disable=unsubscriptable-object
+    async def execute(
         self,
         query: Query,
         params: Optional[Dict[Hashable, Any]] = None,
@@ -80,10 +79,12 @@ class Client:
         Returns:
             None
         """
-        with self._connection.cursor() as cursor:
-            self._execute_query(cursor, query, params)
+        async with self._connection.cursor() as cursor:
+            await self._execute_query(cursor, query, params)
 
-    def execute_and_return(
+    # PENDS python 3.9 support in pylint
+    # pylint: disable=unsubscriptable-object
+    async def execute_and_return(
         self,
         query: Query,
         params: Optional[Dict[Hashable, Any]] = None,
@@ -98,8 +99,8 @@ class Client:
         Returns:
             List containing all the rows that matched the query.
         """
-        with self._connection.cursor() as cursor:
-            self._execute_query(cursor, query, params)
+        async with self._connection.cursor() as cursor:
+            await self._execute_query(cursor, query, params)
 
-            result: List[T] = cursor.fetchall()
+            result: List[T] = await cursor.fetchall()
             return result

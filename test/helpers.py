@@ -9,9 +9,6 @@ from typing import (
 )
 from unittest.mock import MagicMock
 
-from db_wrapper.connection import ConnectionParameters
-from db_wrapper.client import AsyncClient
-
 
 def composed_to_string(seq: Iterable[Any]) -> str:
     """Test helper to convert a sql query to a string for comparison.
@@ -41,9 +38,3 @@ def async_test(
         asyncio.run(test(instance))
 
     return wrapped
-
-
-def get_client() -> AsyncClient:
-    """Create a client with placeholder connection data."""
-    conn_params = ConnectionParameters('a', 1, 'a', 'a', 'a')
-    return AsyncClient(conn_params)

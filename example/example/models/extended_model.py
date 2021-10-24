@@ -7,7 +7,8 @@ from psycopg2 import sql
 from psycopg2.extensions import register_adapter
 from psycopg2.extras import Json
 
-from db_wrapper.model import ModelData, Model, Read, Create, Client
+from db_wrapper import AsyncClient, AsyncModel, ModelData
+from db_wrapper.model import AsyncRead, AsyncCreate
 
 # tell psycopg2 to adapt all dictionaries to json instead of
 # the default hstore
@@ -26,7 +27,7 @@ class ExtendedModelData(ModelData):
     data: Dict[str, Any]
 
 
-class ExtendedCreator(Create[ExtendedModelData]):
+class ExtendedCreator(AsyncCreate[ExtendedModelData]):
     """Add custom json loading to Model.create."""
 
     # pylint: disable=too-few-public-methods
@@ -60,7 +61,7 @@ class ExtendedCreator(Create[ExtendedModelData]):
         return result[0]
 
 
-class ExtendedReader(Read[ExtendedModelData]):
+class ExtendedReader(AsyncRead[ExtendedModelData]):
     """Add custom method to Model.read."""
 
     async def all_by_string(self, string: str) -> List[ExtendedModelData]:
@@ -90,13 +91,13 @@ class ExtendedReader(Read[ExtendedModelData]):
         return result
 
 
-class ExtendedModel(Model[ExtendedModelData]):
+class ExtendedModel(AsyncModel[ExtendedModelData]):
     """Build an ExampleItem Model instance."""
 
     read: ExtendedReader
     create: ExtendedCreator
 
-    def __init__(self, client: Client) -> None:
+    def __init__(self, client: AsyncClient) -> None:
         super().__init__(client, 'extended_model')
         self.read = ExtendedReader(self.client, self.table)
         self.create = ExtendedCreator(self.client, self.table)

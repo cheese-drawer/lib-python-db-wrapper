@@ -64,6 +64,8 @@ class SyncClient:
         else:
             db_cursor.execute(query)
 
+        db_cursor.connection.commit()
+
     def execute(
         self,
         query: Query,

@@ -12,11 +12,9 @@ from typing import (
 
 import aiopg  # type: ignore
 from psycopg2.extras import register_uuid
-# importing for the sole purpose of re-exporting
-# pylint: disable=unused-import
 from psycopg2 import sql
 
-from .connection import ConnectionParameters, connect
+from db_wrapper.connection import ConnectionParameters, connect
 
 # add uuid support to psycopg2 & Postgres
 register_uuid()
@@ -26,11 +24,10 @@ register_uuid()
 # pylint: disable=invalid-name
 T = TypeVar('T')
 
-# pylint: disable=unsubscriptable-object
 Query = Union[str, sql.Composed]
 
 
-class Client:
+class AsyncClient:
     """Class to manage database connection & expose necessary methods to user.
 
     Stores connection parameters on init, then exposes methods to

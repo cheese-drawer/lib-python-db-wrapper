@@ -10,9 +10,9 @@ results received & the act of making a request.
 from typing import (
     cast,
     Any,
-    TypeVar,
     List,
     Tuple,
+    TypeVar,
 )
 from uuid import uuid4
 import unittest
@@ -20,13 +20,18 @@ from unittest import TestCase
 
 import helpers
 
-from db_wrapper.client import Client
+from db_wrapper import ConnectionParameters, AsyncClient, SyncClient
 from db_wrapper.model import (
-    Model,
     ModelData,
-    Read,
+    AsyncModel,
+    AsyncRead,
+    SyncModel,
+    SyncRead
+)
+from db_wrapper.model.base import (
     UnexpectedMultipleResults,
-    NoResultFound)
+    NoResultFound,
+)
 
 
 # Generic doesn't need a more descriptive name
@@ -34,7 +39,7 @@ from db_wrapper.model import (
 T = TypeVar('T', bound=ModelData)
 
 
-def setup(query_result: List[T]) -> Tuple[Model[T], Client]:
+def setupAsync(query_result: List[T]) -> Tuple[AsyncModel[T], AsyncClient]:
     """Setup helper that returns instances of both a Model & a Client.
 
     Mocks the execute_and_return method on the Client instance to skip
@@ -46,14 +51,42 @@ def setup(query_result: List[T]) -> Tuple[Model[T], Client]:
     here, but still specify a return value for the mocked method on the
     returned Client instance.
     """
-    client = helpers.get_client()
+    # create client with placeholder connection data
+    conn_params = ConnectionParameters('a', 1, 'a', 'a', 'a')
+    client = AsyncClient(conn_params)
 
     # mock client's sql execution method
     client.execute_and_return = helpers.AsyncMock(  # type:ignore
         return_value=query_result)
 
-    # init model with mocked client
-    model = Model[Any](client, 'test')
+    # init a real model with mocked client
+    model = AsyncModel[Any](client, 'test')
+
+    return model, client
+
+
+def setupSync(query_result: List[T]) -> Tuple[SyncModel[T], SyncClient]:
+    """Setup helper that returns instances of both a Model & a Client.
+
+    Mocks the execute_and_return method on the Client instance to skip
+    normal execution & just return the given query_result.
+
+    Using this setup helper that requires manually calling in each test
+    instance is better than unittest's setUpModule or setUpClass methods
+    because it allows the caller to skip all the boilerplate contained
+    here, but still specify a return value for the mocked method on the
+    returned Client instance.
+    """
+    # create client with placeholder connection data
+    conn_params = ConnectionParameters('a', 1, 'a', 'a', 'a')
+    client = SyncClient(conn_params)
+
+    # mock client's sql execution method
+    client.execute_and_return = helpers.MagicMock(  # type:ignore
+        return_value=query_result)
+
+    # init a real model with mocked client
+    model = SyncModel[Any](client, 'test')
 
     return model, client
 
@@ -64,39 +97,68 @@ class TestReadOneById(TestCase):
     @helpers.async_test
     async def test_it_correctly_builds_query_with_given_id(self) -> None:
         item = ModelData(id=uuid4())
-        model, client = setup([item])
-        await model.read.one_by_id(str(item.id))
-        query_composed = cast(
-            helpers.AsyncMock, client.execute_and_return).call_args[0][0]
-        query = helpers.composed_to_string(query_composed)
+        async_model, async_client = setupAsync([item])
+        sync_model, sync_client = setupSync([item])
 
-        self.assertEqual(query, "SELECT * "
-                                "FROM test "
-                                f"WHERE id = {item.id};")
+        await async_model.read.one_by_id(str(item.id))
+        sync_model.read.one_by_id(str(item.id))
+
+        async_query_composed = cast(
+            helpers.AsyncMock, async_client.execute_and_return).call_args[0][0]
+        sync_query_composed = cast(
+            helpers.AsyncMock, sync_client.execute_and_return).call_args[0][0]
+
+        async_query = helpers.composed_to_string(async_query_composed)
+        sync_query = helpers.composed_to_string(sync_query_composed)
+
+        queries = [async_query, sync_query]
+
+        for query in queries:
+            with self.subTest():
+                self.assertEqual(query, "SELECT * "
+                                 "FROM test "
+                                 f"WHERE id = {item.id};")
 
     @helpers.async_test
     async def test_it_returns_a_single_result(self) -> None:
         item = ModelData(id=uuid4())
-        model, _ = setup([item])
-        result = await model.read.one_by_id(str(item.id))
+        async_model, _ = setupAsync([item])
+        sync_model, _ = setupSync([item])
+        results = [await async_model.read.one_by_id(str(item.id)),
+                   sync_model.read.one_by_id(str(item.id))]
 
-        self.assertEqual(result, item)
+        for result in results:
+            with self.subTest():
+                self.assertEqual(result, item)
 
-    @ helpers.async_test
+    @helpers.async_test
     async def test_it_raises_exception_if_more_than_one_result(self) -> None:
         item = ModelData(id=uuid4())
-        model, _ = setup([item, item])
+        async_model, _ = setupAsync([item, item])
+        sync_model, _ = setupSync([item, item])
 
-        with self.assertRaises(UnexpectedMultipleResults):
-            await model.read.one_by_id(str(item.id))
+        with self.subTest():
+            with self.assertRaises(UnexpectedMultipleResults):
+                await async_model.read.one_by_id(str(item.id))
+
+        with self.subTest():
+            with self.assertRaises(UnexpectedMultipleResults):
+                sync_model.read.one_by_id(str(item.id))
 
     @ helpers.async_test
     async def test_it_raises_exception_if_no_result_to_return(self) -> None:
-        model: Model[ModelData]
-        model, _ = setup([])
+        async_model: AsyncModel[ModelData]
+        sync_model: SyncModel[ModelData]
+        async_model, _ = setupAsync([])
+        sync_model, _ = setupSync([])
 
-        with self.assertRaises(NoResultFound):
-            await model.read.one_by_id('id')
+        with self.subTest():
+            with self.assertRaises(NoResultFound):
+                await async_model.read.one_by_id('id')
+
+        with self.subTest():
+            with self.assertRaises(NoResultFound):
+                sync_model.read.one_by_id('id')
 
 
 class TestCreateOne(TestCase):
@@ -114,16 +176,26 @@ class TestCreateOne(TestCase):
             'a': 'a',
             'b': 'b',
         })
-        model, client = setup([item])
+        async_model, async_client = setupAsync([item])
+        sync_model, sync_client = setupSync([item])
 
-        await model.create.one(item)
-        query_composed = cast(
-            helpers.AsyncMock, client.execute_and_return).call_args[0][0]
-        query = helpers.composed_to_string(query_composed)
+        await async_model.create.one(item)
+        sync_model.create.one(item)
 
-        self.assertEqual(query, 'INSERT INTO test (id,a,b) '
-                                f"VALUES ({item.id},a,b) "
-                                'RETURNING *;')
+        async_query_composed = cast(
+            helpers.AsyncMock, async_client.execute_and_return).call_args[0][0]
+        sync_query_composed = cast(
+            helpers.MagicMock, sync_client.execute_and_return).call_args[0][0]
+
+        queries = [async_query_composed, sync_query_composed]
+
+        for query in queries:
+            with self.subTest():
+                self.assertEqual(
+                    helpers.composed_to_string(query),
+                    'INSERT INTO test (id,a,b) '
+                    f"VALUES ({item.id},a,b) "
+                    'RETURNING *;')
 
     @ helpers.async_test
     async def test_it_returns_the_new_record(self) -> None:
@@ -132,11 +204,15 @@ class TestCreateOne(TestCase):
             'a': 'a',
             'b': 'b',
         })
-        model, _ = setup([item])
+        async_model, _ = setupAsync([item])
+        sync_model, _ = setupSync([item])
 
-        result = await model.create.one(item)
+        results = [await async_model.create.one(item),
+                   sync_model.create.one(item)]
 
-        self.assertEqual(result, item)
+        for result in results:
+            with self.subTest():
+                self.assertEqual(result, item)
 
 
 class TestUpdateOne(TestCase):
@@ -154,21 +230,27 @@ class TestUpdateOne(TestCase):
             'a': 'a',
             'b': 'b',
         })
-        # cast required to avoid mypy error due to unpacking
-        # TypedDict, see more on GitHub issue
-        # https://github.com/python/mypy/issues/4122
-        updated = TestUpdateOne.Item(**{**item.dict(), 'b': 'c'})
-        model, client = setup([updated])
+        async_model, async_client = setupAsync([item])
+        sync_model, sync_client = setupSync([item])
 
-        await model.update.one_by_id(str(item.id), {'b': 'c'})
-        query_composed = cast(
-            helpers.AsyncMock, client.execute_and_return).call_args[0][0]
-        query = helpers.composed_to_string(query_composed)
+        await async_model.update.one_by_id(str(item.id), {'b': 'c'})
+        sync_model.update.one_by_id(str(item.id), {'b': 'c'})
 
-        self.assertEqual(query, 'UPDATE test '
-                                'SET b = c '
-                                f"WHERE id = {item.id} "
-                                'RETURNING *;')
+        async_query_composed = cast(
+            helpers.AsyncMock, async_client.execute_and_return).call_args[0][0]
+        sync_query_composed = cast(
+            helpers.AsyncMock, sync_client.execute_and_return).call_args[0][0]
+
+        queries = [async_query_composed, sync_query_composed]
+
+        for query in queries:
+            with self.subTest():
+                self.assertEqual(
+                    helpers.composed_to_string(query),
+                    'UPDATE test '
+                    'SET b = c '
+                    f"WHERE id = {item.id} "
+                    'RETURNING *;')
 
     @ helpers.async_test
     async def test_it_returns_the_new_record(self) -> None:
@@ -177,15 +259,19 @@ class TestUpdateOne(TestCase):
             'a': 'a',
             'b': 'b',
         })
-        # cast required to avoid mypy error due to unpacking
-        # TypedDict, see more on GitHub issue
-        # https://github.com/python/mypy/issues/4122
+        # mock result
         updated = TestUpdateOne.Item(**{**item.dict(), 'b': 'c'})
-        model, _ = setup([updated])
+        async_model, _ = setupAsync([updated])
+        sync_model, _ = setupSync([updated])
 
-        result = await model.update.one_by_id(str(item.id), {'b': 'c'})
+        results = [
+            await async_model.update.one_by_id(str(item.id), {'b': 'c'}),
+            sync_model.update.one_by_id(str(item.id), {'b': 'c'})
+        ]
 
-        self.assertEqual(result, updated)
+        for result in results:
+            with self.subTest():
+                self.assertEqual(result, updated)
 
 
 class TestDeleteOneById(TestCase):
@@ -203,17 +289,26 @@ class TestDeleteOneById(TestCase):
             'a': 'a',
             'b': 'b',
         })
-        model, client = setup([item])
+        async_model, async_client = setupAsync([item])
+        sync_model, sync_client = setupSync([item])
 
-        await model.delete.one_by_id(str(item.id))
+        await async_model.delete.one_by_id(str(item.id))
+        sync_model.delete.one_by_id(str(item.id))
 
-        query_composed = cast(
-            helpers.AsyncMock, client.execute_and_return).call_args[0][0]
-        query = helpers.composed_to_string(query_composed)
+        async_query_composed = cast(
+            helpers.AsyncMock, async_client.execute_and_return).call_args[0][0]
+        sync_query_composed = cast(
+            helpers.AsyncMock, sync_client.execute_and_return).call_args[0][0]
 
-        self.assertEqual(query, 'DELETE FROM test '
-                                f"WHERE id = {item.id} "
-                                'RETURNING *;')
+        queries = [async_query_composed, sync_query_composed]
+
+        for query in queries:
+            with self.subTest():
+                self.assertEqual(
+                    helpers.composed_to_string(query),
+                    'DELETE FROM test '
+                    f"WHERE id = {item.id} "
+                    'RETURNING *;')
 
     @ helpers.async_test
     async def test_it_returns_the_deleted_record(self) -> None:
@@ -222,44 +317,78 @@ class TestDeleteOneById(TestCase):
             'a': 'a',
             'b': 'b',
         })
-        model, _ = setup([item])
+        async_model, _ = setupAsync([item])
+        sync_model, _ = setupSync([item])
 
-        result = await model.delete.one_by_id(str(item.id))
+        results = [await async_model.delete.one_by_id(str(item.id)),
+                   sync_model.delete.one_by_id(str(item.id))]
 
-        self.assertEqual(result, item)
+        for result in results:
+            with self.subTest():
+                self.assertEqual(result, item)
 
 
 class TestExtendingModel(TestCase):
     """Testing Model's extensibility."""
-    model: Model[ModelData]
+
+    models: List[Any]
 
     def setUp(self) -> None:
-        class ReadExtended(Read[ModelData]):
+        class Item(ModelData):
+            """An example model data object."""
+
+        class AsyncReadExtended(AsyncRead[Item]):
             """Extending Read with additional query."""
 
             def new_query(self) -> None:
                 pass
 
-        model = Model[ModelData](helpers.get_client(), 'test')
-        model.read = ReadExtended(model.client, model.table)
+        class AsyncExtendedModel(AsyncModel[Item]):
+            """A model with extended read queries."""
+            read: AsyncReadExtended
 
-        self.model = model
+            def __init__(self, client: AsyncClient) -> None:
+                super().__init__(client, 'extended_model')
+                self.read = AsyncReadExtended(self.client, self.table)
+
+        class SyncReadExtended(SyncRead[Item]):
+            """Extending Read with additional query."""
+
+            def new_query(self) -> None:
+                pass
+
+        class SyncExtendedModel(SyncModel[Item]):
+            """A model with extended read queries."""
+            read: SyncReadExtended
+
+            def __init__(self, client: SyncClient) -> None:
+                super().__init__(client, 'extended_model')
+                self.read = SyncReadExtended(self.client, self.table)
+
+        _, async_client = setupAsync([Item(**{"id": uuid4()})])
+        _, sync_client = setupSync([Item(**{"id": uuid4()})])
+        self.models = [AsyncExtendedModel(async_client),
+                       SyncExtendedModel(sync_client)]
 
     def test_it_can_add_new_queries_by_replacing_a_crud_property(self) -> None:
-        new_method = getattr(self.model.read, "new_query", None)
+        new_methods = [getattr(model.read, "new_query", None)
+                       for model in self.models]
 
-        with self.subTest():
-            self.assertIsNotNone(new_method)
-        with self.subTest():
-            self.assertTrue(callable(new_method))
+        for method in new_methods:
+            with self.subTest():
+                self.assertIsNotNone(method)
+            with self.subTest():
+                self.assertTrue(callable(method))
 
     def test_it_still_has_original_queries_after_extending(self) -> None:
-        old_method = getattr(self.model.read, "one_by_id", None)
+        old_methods = [getattr(model.read, "one_by_id", None)
+                       for model in self.models]
 
-        with self.subTest():
-            self.assertIsNotNone(old_method)
-        with self.subTest():
-            self.assertTrue(callable(old_method))
+        for method in old_methods:
+            with self.subTest():
+                self.assertIsNotNone(method)
+            with self.subTest():
+                self.assertTrue(callable(method))
 
 
 if __name__ == '__main__':

@@ -105,7 +105,7 @@ class ReadABC(Generic[T]):
     def __init__(self, table: sql.Composable) -> None:
         self._table = table
 
-    def _query_one_by_id(self, id_value: str) -> sql.Composed:
+    def _query_one_by_id(self, id_value: UUID) -> sql.Composed:
         """Build query to read a row by it's id."""
         query = sql.SQL(
             'SELECT * '
@@ -113,7 +113,7 @@ class ReadABC(Generic[T]):
             'WHERE id = {id_value};'
         ).format(
             table=self._table,
-            id_value=sql.Literal(id_value)
+            id_value=sql.Literal(str(id_value))
         )
 
         return query

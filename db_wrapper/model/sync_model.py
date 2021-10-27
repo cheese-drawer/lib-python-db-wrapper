@@ -1,6 +1,7 @@
 """Synchronous Model objects."""
 
 from typing import Any, Dict, List
+from uuid import UUID
 
 from db_wrapper.client import SyncClient
 from .base import (
@@ -45,7 +46,7 @@ class SyncRead(ReadABC[T]):
         super().__init__(table)
         self._client = client
 
-    def one_by_id(self, id_value: str) -> T:
+    def one_by_id(self, id_value: UUID) -> T:
         """Read a row by it's id."""
         result: List[T] = self._client.execute_and_return(
             self._query_one_by_id(id_value))

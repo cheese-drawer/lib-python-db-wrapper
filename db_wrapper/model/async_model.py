@@ -1,6 +1,7 @@
 """Asynchronous Model objects."""
 
 from typing import Any, Dict, List
+from uuid import UUID
 
 from db_wrapper.client import AsyncClient
 from .base import (
@@ -45,7 +46,7 @@ class AsyncRead(ReadABC[T]):
         super().__init__(table)
         self._client = client
 
-    async def one_by_id(self, id_value: str) -> T:
+    async def one_by_id(self, id_value: UUID) -> T:
         """Read a row by it's id."""
         result: List[T] = await self._client.execute_and_return(
             self._query_one_by_id(id_value))

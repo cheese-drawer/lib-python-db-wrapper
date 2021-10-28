@@ -1,9 +1,25 @@
+# pylint: disable=missing-module-docstring
+# pylint: disable=missing-class-docstring
+# pylint: disable=missing-function-docstring
+# pylint: disable=no-name-in-module
+# pylint: disable=unused-import
+# pylint: disable=unused-argument
+# pylint: disable=multiple-statements
+# pylint: disable=invalid-name
+# pylint: disable=invalid-length-returned
+# pylint: disable=too-few-public-methods
+# pylint: disable=too-many-public-methods
+# pylint: disable=no-self-use
+# pylint: disable=redefined-builtin
+# pylint: disable=super-init-not-called
+
 from typing import Any, Optional
 
 from psycopg2._json import (
     register_default_json,
     register_default_jsonb
 )
+
 from psycopg2._psycopg import (
     AsIs,
     BINARYARRAY,
@@ -46,7 +62,6 @@ from psycopg2._psycopg import (
     PYTIME,
     PYTIMEARRAY,
     QueryCanceledError,
-    QuotedString,
     ROWIDARRAY,
     STRINGARRAY,
     TIME,
@@ -67,13 +82,6 @@ from psycopg2._psycopg import (
     get_wait_callback,
     libpq_version,
     lobject,
-    new_array_type,
-    new_type,
-    parse_dsn,
-    quote_ident,
-    register_type,
-    set_wait_callback,
-    string_types
 )
 from psycopg2._range import Range
 
@@ -99,6 +107,15 @@ TRANSACTION_STATUS_ACTIVE: int
 TRANSACTION_STATUS_INTRANS: int
 TRANSACTION_STATUS_INERROR: int
 TRANSACTION_STATUS_UNKNOWN: int
+
+QuotedString: Any
+new_array_type: Any
+new_type: Any
+parse_dsn: Any
+quote_ident: Any
+register_type: Any
+set_wait_callback: Any
+string_types: Any
 
 
 def register_adapter(typ: Any, callable: Any) -> None: ...

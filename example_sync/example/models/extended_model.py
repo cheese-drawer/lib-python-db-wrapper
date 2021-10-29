@@ -7,14 +7,8 @@ from psycopg2 import sql
 from psycopg2.extensions import register_adapter
 from psycopg2.extras import Json  # type: ignore
 
-from db_wrapper import SyncClient
-from db_wrapper.model import (
-    ModelData,
-    RealDictRow,
-    SyncModel,
-    SyncRead,
-    SyncCreate
-)
+from db_wrapper import SyncClient, SyncModel, ModelData
+from db_wrapper.model import RealDictRow, SyncRead, SyncCreate
 
 # tell psycopg2 to adapt all dictionaries to json instead of
 # the default hstore

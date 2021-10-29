@@ -3,14 +3,14 @@
 from __future__ import annotations
 from typing import (
     Any,
-    TypeVar,
-    Union,
-    Optional,
+    Dict,
     Hashable,
     List,
-    Dict)
+    Optional,
+    Union,
+)
 
-from psycopg2.extras import register_uuid
+from psycopg2.extras import register_uuid, RealDictRow
 from psycopg2 import sql
 # pylint can't seem to find the items in psycopg2 despite being available
 from psycopg2._psycopg import cursor  # pylint: disable=no-name-in-module
@@ -23,10 +23,6 @@ from db_wrapper.connection import (
 # add uuid support to psycopg2 & Postgres
 register_uuid()
 
-
-# Generic doesn't need a more descriptive name
-# pylint: disable=invalid-name
-T = TypeVar('T')
 
 Query = Union[str, sql.Composed]
 
@@ -60,7 +56,7 @@ class SyncClient:
         params: Optional[Dict[Hashable, Any]] = None,
     ) -> None:
         if params:
-            db_cursor.execute(query, params)  # type: ignore
+            db_cursor.execute(query, params)
         else:
             db_cursor.execute(query)
 
@@ -88,7 +84,7 @@ class SyncClient:
         self,
         query: Query,
         params: Optional[Dict[Hashable, Any]] = None,
-    ) -> List[T]:
+    ) -> List[RealDictRow]:
         """Execute the given SQL query & return the result.
 
         Arguments:
@@ -102,5 +98,5 @@ class SyncClient:
         with self._connection.cursor() as db_cursor:
             self._execute_query(db_cursor, query, params)
 
-            result: List[T] = db_cursor.fetchall()
+            result: List[RealDictRow] = db_cursor.fetchall()
             return result

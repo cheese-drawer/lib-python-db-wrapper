@@ -5,10 +5,10 @@ from typing import Any, List, Dict
 
 from psycopg2 import sql
 from psycopg2.extensions import register_adapter
-from psycopg2.extras import Json
+from psycopg2.extras import Json  # type: ignore
 
-from db_wrapper import SyncClient
-from db_wrapper.model import ModelData, SyncModel, SyncRead, SyncCreate
+from db_wrapper import SyncClient, SyncModel, ModelData
+from db_wrapper.model import RealDictRow, SyncRead, SyncCreate
 
 # tell psycopg2 to adapt all dictionaries to json instead of
 # the default hstore
@@ -51,10 +51,12 @@ class ExtendedCreator(SyncCreate[ExtendedModelData]):
             values=sql.SQL(',').join(values),
         )
 
-        result: List[ExtendedModelData] = \
+        query_result: List[RealDictRow] = \
             self._client.execute_and_return(query)
 
-        return result[0]
+        result = self._return_constructor(**query_result[0])
+
+        return result
 
 
 class ExtendedReader(SyncRead[ExtendedModelData]):
@@ -81,8 +83,10 @@ class ExtendedReader(SyncRead[ExtendedModelData]):
         query = sql.SQL('SELECT * FROM {table}').format(
             table=self._table)
 
-        result: List[ExtendedModelData] = self \
-            ._client.execute_and_return(query)
+        query_result: List[RealDictRow] = \
+            self._client.execute_and_return(query)
+
+        result = [self._return_constructor(**item) for item in query_result]
 
         return result
 
@@ -94,6 +98,14 @@ class ExtendedModel(SyncModel[ExtendedModelData]):
     create: ExtendedCreator
 
     def __init__(self, client: SyncClient) -> None:
-        super().__init__(client, 'extended_model')
-        self.read = ExtendedReader(self.client, self.table)
-        self.create = ExtendedCreator(self.client, self.table)
+        super().__init__(client, 'extended_model', ExtendedModelData)
+        self.read = ExtendedReader(
+            self.client,
+            self.table,
+            ExtendedModelData
+        )
+        self.create = ExtendedCreator(
+            self.client,
+            self.table,
+            ExtendedModelData
+        )

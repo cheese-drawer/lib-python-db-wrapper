@@ -1,23 +1,62 @@
+# pylint: disable=missing-module-docstring
+# pylint: disable=missing-class-docstring
+# pylint: disable=missing-function-docstring
+# pylint: disable=no-name-in-module
+# pylint: disable=unused-import
+# pylint: disable=unused-argument
+# pylint: disable=multiple-statements
+# pylint: disable=invalid-name
+# pylint: disable=invalid-length-returned
+# pylint: disable=too-few-public-methods
+# pylint: disable=too-many-public-methods
+# pylint: disable=no-self-use
+# pylint: disable=redefined-builtin
+# pylint: disable=super-init-not-called
+
+
+from collections import OrderedDict
 from typing import Any, Optional
-# from .compat import PY2 as PY2, PY3 as PY3, lru_cache as lru_cache
-# from .extensions import connection as _connection, cursor as _cursor, quote_ident as quote_ident
-# from collections import OrderedDict
-# from psycopg2._ipaddress import register_ipaddress as register_ipaddress
-# from psycopg2._json import Json as Json, json as json, register_default_json as register_default_json, register_default_jsonb as register_default_jsonb, register_json as register_json
-# from psycopg2._psycopg import REPLICATION_LOGICAL as REPLICATION_LOGICAL, REPLICATION_PHYSICAL as REPLICATION_PHYSICAL, ReplicationConnection as _replicationConnection, ReplicationCursor as _replicationCursor, ReplicationMessage as ReplicationMessage
-# from psycopg2._range import DateRange as DateRange, DateTimeRange as DateTimeRange, DateTimeTZRange as DateTimeTZRange, NumericRange as NumericRange, Range as Range, RangeAdapter as RangeAdapter, RangeCaster as RangeCaster, register_range as register_range
+
+from psycopg2._range import (
+    DateRange,
+    DateTimeRange,
+    DateTimeTZRange,
+    NumericRange,
+    Range,
+    RangeAdapter,
+    RangeCaster,
+    register_range
+)
+from psycopg2._psycopg import (
+    REPLICATION_LOGICAL,
+    REPLICATION_PHYSICAL,
+    ReplicationConnection,
+    ReplicationCursor,
+    ReplicationMessage,
+    connection,
+    cursor,
+    quote_ident
+)
+from psycopg2._ipaddress import (
+    register_ipaddress
+)
+
+
+class RealDictRow(OrderedDict[Any, Any]):
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+    def __setitem__(self, key: Any, value: Any) -> None: ...
 #
 #
-# class DictCursorBase(_cursor):
+# class DictCursorBase(cursor):
 #     row_factory: Any = ...
 #     def __init__(self, *args: Any, **kwargs: Any) -> None: ...
 #     def fetchone(self): ...
 #     def fetchmany(self, size: Optional[Any] = ...): ...
 #     def fetchall(self): ...
-#     def __iter__(self) -> Any: ...
+#     def __iter__(self) -> Any: ...  # pylint: disable=non-iterator-returned
 #
 #
-# class DictConnection(_connection):
+# class DictConnection(connection):
 #     def cursor(self, *args: Any, **kwargs: Any): ...
 #
 #
@@ -41,7 +80,7 @@ from typing import Any, Optional
 #     def __reduce__(self): ...
 #
 #
-# class RealDictConnection(_connection):
+# class RealDictConnection(connection):
 #     def cursor(self, *args: Any, **kwargs: Any): ...
 #
 #
@@ -57,11 +96,11 @@ from typing import Any, Optional
 #     def __setitem__(self, key: Any, value: Any) -> None: ...
 #
 #
-# class NamedTupleConnection(_connection):
+# class NamedTupleConnection(connection):
 #     def cursor(self, *args: Any, **kwargs: Any): ...
 #
 #
-# class NamedTupleCursor(_cursor):
+# class NamedTupleCursor(cursor):
 #     Record: Any = ...
 #     MAX_CACHE: int = ...
 #     def execute(self, query: Any, vars: Optional[Any] = ...): ...
@@ -73,14 +112,14 @@ from typing import Any, Optional
 #     def __iter__(self) -> Any: ...
 #
 #
-# class LoggingConnection(_connection):
+# class LoggingConnection(connection):
 #     log: Any = ...
 #     def initialize(self, logobj: Any) -> None: ...
 #     def filter(self, msg: Any, curs: Any): ...
 #     def cursor(self, *args: Any, **kwargs: Any): ...
 #
 #
-# class LoggingCursor(_cursor):
+# class LoggingCursor(cursor):
 #     def execute(self, query: Any, vars: Optional[Any] = ...): ...
 #     def callproc(self, procname: Any, vars: Optional[Any] = ...): ...
 #
@@ -111,11 +150,21 @@ from typing import Any, Optional
 #
 # class ReplicationCursor(_replicationCursor):
 #     def create_replication_slot(
-#         self, slot_name: Any, slot_type: Optional[Any] = ..., output_plugin: Optional[Any] = ...) -> None: ...
+#         self,
+#         slot_name: Any,
+#         slot_type: Optional[Any] = ...,
+#         output_plugin: Optional[Any] = ...) -> None: ...
 #
 #     def drop_replication_slot(self, slot_name: Any) -> None: ...
-#     def start_replication(self, slot_name: Optional[Any] = ..., slot_type: Optional[Any] = ..., start_lsn: int = ...,
-#                           timeline: int = ..., options: Optional[Any] = ..., decode: bool = ..., status_interval: int = ...) -> None: ...
+#
+#     def start_replication(self,
+#                           slot_name: Optional[Any] = ...,
+#                           slot_type: Optional[Any] = ...,
+#                           start_lsn: int = ...,
+#                           timeline: int = ...,
+#                           options: Optional[Any] = ...,
+#                           decode: bool = ...,
+#                           status_interval: int = ...) -> None: ...
 #
 #     def fileno(self): ...
 #
@@ -124,10 +173,8 @@ from typing import Any, Optional
 #     def __init__(self, uuid: Any) -> None: ...
 #     def __conform__(self, proto: Any): ...
 #     def getquoted(self): ...
-#
-#
 
-# pylint: disable=unsubscriptable-object
+
 def register_uuid(oids: Optional[Any] = ...,
                   conn_or_curs: Optional[Any] = ...) -> None: ...
 #
@@ -161,8 +208,13 @@ def register_uuid(oids: Optional[Any] = ...,
 #     def get_oids(self, conn_or_curs: Any): ...
 #
 #
-# def register_hstore(conn_or_curs: Any, globally: bool = ..., unicode: bool = ...,
-#                     oid: Optional[Any] = ..., array_oid: Optional[Any] = ...) -> None: ...
+# def register_hstore(
+#     conn_or_curs: Any,
+#     globally: bool = ...,
+#     unicode: bool = ...,
+#     oid: Optional[Any] = ...,
+#     array_oid: Optional[Any] = ...
+# ) -> None: ...
 #
 #
 # class CompositeCaster:

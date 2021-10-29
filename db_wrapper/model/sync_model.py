@@ -1,18 +1,20 @@
 """Synchronous Model objects."""
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Type
 from uuid import UUID
+
+from psycopg2.extras import RealDictRow
 
 from db_wrapper.client import SyncClient
 from .base import (
     ensure_exactly_one,
+    sql,
     T,
     CreateABC,
+    DeleteABC,
     ReadABC,
     UpdateABC,
-    DeleteABC,
     ModelABC,
-    sql,
 )
 
 
@@ -23,16 +25,22 @@ class SyncCreate(CreateABC[T]):
 
     _client: SyncClient
 
-    def __init__(self, client: SyncClient, table: sql.Composable) -> None:
-        super().__init__(table)
+    def __init__(
+        self,
+        client: SyncClient,
+        table: sql.Composable,
+        return_constructor: Type[T]
+    ) -> None:
+        super().__init__(table, return_constructor)
         self._client = client
 
     def one(self, item: T) -> T:
         """Create one new record with a given item."""
-        result: List[T] = self._client.execute_and_return(
+        query_result: List[RealDictRow] = self._client.execute_and_return(
             self._query_one(item))
+        result: T = self._return_constructor(**query_result[0])
 
-        return result[0]
+        return result
 
 
 class SyncRead(ReadABC[T]):
@@ -42,19 +50,26 @@ class SyncRead(ReadABC[T]):
 
     _client: SyncClient
 
-    def __init__(self, client: SyncClient, table: sql.Composable) -> None:
-        super().__init__(table)
+    def __init__(
+        self,
+        client: SyncClient,
+        table: sql.Composable,
+        return_constructor: Type[T]
+    ) -> None:
+        super().__init__(table, return_constructor)
         self._client = client
 
     def one_by_id(self, id_value: UUID) -> T:
         """Read a row by it's id."""
-        result: List[T] = self._client.execute_and_return(
+        query_result: List[RealDictRow] = self._client.execute_and_return(
             self._query_one_by_id(id_value))
 
         # Should only return one item from DB
-        ensure_exactly_one(result)
+        ensure_exactly_one(query_result)
 
-        return result[0]
+        result: T = self._return_constructor(**query_result[0])
+
+        return result
 
 
 class SyncUpdate(UpdateABC[T]):
@@ -64,11 +79,16 @@ class SyncUpdate(UpdateABC[T]):
 
     _client: SyncClient
 
-    def __init__(self, client: SyncClient, table: sql.Composable) -> None:
-        super().__init__(table)
+    def __init__(
+        self,
+        client: SyncClient,
+        table: sql.Composable,
+        return_constructor: Type[T]
+    ) -> None:
+        super().__init__(table, return_constructor)
         self._client = client
 
-    def one_by_id(self, id_value: str, changes: Dict[str, Any]) -> T:
+    def one_by_id(self, id_value: UUID, changes: Dict[str, Any]) -> T:
         """Apply changes to row with given id.
 
         Arguments:
@@ -79,12 +99,14 @@ class SyncUpdate(UpdateABC[T]):
         Returns:
             full value of row updated
         """
-        result: List[T] = self._client.execute_and_return(
+        query_result: List[RealDictRow] = self._client.execute_and_return(
             self._query_one_by_id(id_value, changes))
 
-        ensure_exactly_one(result)
+        ensure_exactly_one(query_result)
 
-        return result[0]
+        result: T = self._return_constructor(**query_result[0])
+
+        return result
 
 
 class SyncDelete(DeleteABC[T]):
@@ -94,19 +116,25 @@ class SyncDelete(DeleteABC[T]):
 
     _client: SyncClient
 
-    def __init__(self, client: SyncClient, table: sql.Composable) -> None:
-        super().__init__(table)
+    def __init__(
+        self,
+        client: SyncClient,
+        table: sql.Composable,
+        return_constructor: Type[T]
+    ) -> None:
+        super().__init__(table, return_constructor)
         self._client = client
 
     def one_by_id(self, id_value: str) -> T:
         """Delete one record with matching ID."""
-        result: List[T] = self._client.execute_and_return(
+        query_result: List[RealDictRow] = self._client.execute_and_return(
             self._query_one_by_id(id_value))
 
-        # Should only return one item from DB
-        ensure_exactly_one(result)
+        ensure_exactly_one(query_result)
 
-        return result[0]
+        result: T = self._return_constructor(**query_result[0])
+
+        return result
 
 
 class SyncModel(ModelABC[T]):
@@ -122,19 +150,22 @@ class SyncModel(ModelABC[T]):
     _update: SyncUpdate[T]
     _delete: SyncDelete[T]
 
-    # PENDS python 3.9 support in pylint
-    # pylint: disable=unsubscriptable-object
     def __init__(
         self,
         client: SyncClient,
         table: str,
+        return_constructor: Type[T],
     ) -> None:
         super().__init__(client, table)
 
-        self._create = SyncCreate[T](self.client, self.table)
-        self._read = SyncRead[T](self.client, self.table)
-        self._update = SyncUpdate[T](self.client, self.table)
-        self._delete = SyncDelete[T](self.client, self.table)
+        self._create = SyncCreate[T](
+            self.client, self.table, return_constructor)
+        self._read = SyncRead[T](
+            self.client, self.table, return_constructor)
+        self._update = SyncUpdate[T](
+            self.client, self.table, return_constructor)
+        self._delete = SyncDelete[T](
+            self.client, self.table, return_constructor)
 
     @property
     def create(self) -> SyncCreate[T]:

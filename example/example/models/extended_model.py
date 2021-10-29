@@ -5,10 +5,10 @@ from typing import Any, List, Dict
 
 from psycopg2 import sql
 from psycopg2.extensions import register_adapter
-from psycopg2.extras import Json
+from psycopg2.extras import Json  # type: ignore
 
 from db_wrapper import AsyncClient, AsyncModel, ModelData
-from db_wrapper.model import AsyncRead, AsyncCreate
+from db_wrapper.model import AsyncRead, AsyncCreate, RealDictRow
 
 # tell psycopg2 to adapt all dictionaries to json instead of
 # the default hstore
@@ -55,10 +55,11 @@ class ExtendedCreator(AsyncCreate[ExtendedModelData]):
             values=sql.SQL(',').join(values),
         )
 
-        result: List[ExtendedModelData] = \
+        query_result: List[RealDictRow] = \
             await self._client.execute_and_return(query)
+        result = self._return_constructor(**query_result[0])
 
-        return result[0]
+        return result
 
 
 class ExtendedReader(AsyncRead[ExtendedModelData]):
@@ -75,8 +76,10 @@ class ExtendedReader(AsyncRead[ExtendedModelData]):
             string=sql.Identifier(string)
         )
 
-        result: List[ExtendedModelData] = await self \
-            ._client.execute_and_return(query)
+        query_result: List[RealDictRow] = \
+            await self._client.execute_and_return(query)
+        result = [self._return_constructor(**row)
+                  for row in query_result]
 
         return result
 
@@ -85,8 +88,10 @@ class ExtendedReader(AsyncRead[ExtendedModelData]):
         query = sql.SQL('SELECT * FROM {table}').format(
             table=self._table)
 
-        result: List[ExtendedModelData] = await self \
-            ._client.execute_and_return(query)
+        query_result: List[RealDictRow] = \
+            await self._client.execute_and_return(query)
+        result = [self._return_constructor(**row)
+                  for row in query_result]
 
         return result
 
@@ -98,6 +103,8 @@ class ExtendedModel(AsyncModel[ExtendedModelData]):
     create: ExtendedCreator
 
     def __init__(self, client: AsyncClient) -> None:
-        super().__init__(client, 'extended_model')
-        self.read = ExtendedReader(self.client, self.table)
-        self.create = ExtendedCreator(self.client, self.table)
+        super().__init__(client, 'extended_model', ExtendedModelData)
+        self.read = ExtendedReader(
+            self.client, self.table, ExtendedModelData)
+        self.create = ExtendedCreator(
+            self.client, self.table, ExtendedModelData)

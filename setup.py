@@ -8,7 +8,7 @@ short_description = \
 
 setuptools.setup(
     name="db_wrapper",
-    version="2.2.0",
+    version="2.3.0",
     author="Andrew Chang-DeWitt",
     author_email="andrew@andrew-chang-dewitt.dev",
     description=short_description,

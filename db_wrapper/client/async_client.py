@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from typing import (
+    cast,
     Any,
     TypeVar,
     Union,
@@ -10,8 +11,8 @@ from typing import (
     List,
     Dict)
 
-import aiopg  # type: ignore
-from psycopg2.extras import register_uuid
+import aiopg
+from psycopg2.extras import register_uuid, RealDictRow
 from psycopg2 import sql
 
 from db_wrapper.connection import ConnectionParameters, connect
@@ -19,10 +20,6 @@ from db_wrapper.connection import ConnectionParameters, connect
 # add uuid support to psycopg2 & Postgres
 register_uuid()
 
-
-# Generic doesn't need a more descriptive name
-# pylint: disable=invalid-name
-T = TypeVar('T')
 
 Query = Union[str, sql.Composed]
 
@@ -57,6 +54,11 @@ class AsyncClient:
         query: Query,
         params: Optional[Dict[Hashable, Any]] = None,
     ) -> None:
+        # aiopg type is incorrect & thinks execute only takes str
+        # when in the query is passed through to psycopg2's
+        # cursor.execute which does accept sql.Composed objects.
+        query = cast(str, query)
+
         if params:
             await cursor.execute(query, params)
         else:
@@ -88,7 +90,7 @@ class AsyncClient:
         self,
         query: Query,
         params: Optional[Dict[Hashable, Any]] = None,
-    ) -> List[T]:
+    ) -> List[RealDictRow]:
         """Execute the given SQL query & return the result.
 
         Arguments:
@@ -102,5 +104,5 @@ class AsyncClient:
         async with self._connection.cursor() as cursor:
             await self._execute_query(cursor, query, params)
 
-            result: List[T] = await cursor.fetchall()
+            result: List[RealDictRow] = await cursor.fetchall()
             return result

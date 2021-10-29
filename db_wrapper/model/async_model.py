@@ -1,18 +1,20 @@
 """Asynchronous Model objects."""
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Type
 from uuid import UUID
+
+from psycopg2.extras import RealDictRow
 
 from db_wrapper.client import AsyncClient
 from .base import (
     ensure_exactly_one,
+    sql,
     T,
     CreateABC,
     ReadABC,
     UpdateABC,
     DeleteABC,
     ModelABC,
-    sql,
 )
 
 
@@ -23,16 +25,22 @@ class AsyncCreate(CreateABC[T]):
 
     _client: AsyncClient
 
-    def __init__(self, client: AsyncClient, table: sql.Composable) -> None:
-        super().__init__(table)
+    def __init__(
+        self,
+        client: AsyncClient,
+        table: sql.Composable,
+        return_constructor: Type[T]
+    ) -> None:
+        super().__init__(table, return_constructor)
         self._client = client
 
     async def one(self, item: T) -> T:
         """Create one new record with a given item."""
-        result: List[T] = await self._client.execute_and_return(
-            self._query_one(item))
+        query_result: List[RealDictRow] = \
+            await self._client.execute_and_return(self._query_one(item))
+        result: T = self._return_constructor(**query_result[0])
 
-        return result[0]
+        return result
 
 
 class AsyncRead(ReadABC[T]):
@@ -42,19 +50,27 @@ class AsyncRead(ReadABC[T]):
 
     _client: AsyncClient
 
-    def __init__(self, client: AsyncClient, table: sql.Composable) -> None:
-        super().__init__(table)
+    def __init__(
+        self,
+        client: AsyncClient,
+        table: sql.Composable,
+        return_constructor: Type[T]
+    ) -> None:
+        super().__init__(table, return_constructor)
         self._client = client
 
     async def one_by_id(self, id_value: UUID) -> T:
         """Read a row by it's id."""
-        result: List[T] = await self._client.execute_and_return(
-            self._query_one_by_id(id_value))
+        query_result: List[RealDictRow] = \
+            await self._client.execute_and_return(
+                self._query_one_by_id(id_value))
 
         # Should only return one item from DB
-        ensure_exactly_one(result)
+        ensure_exactly_one(query_result)
 
-        return result[0]
+        result: T = self._return_constructor(**query_result[0])
+
+        return result
 
 
 class AsyncUpdate(UpdateABC[T]):
@@ -64,11 +80,16 @@ class AsyncUpdate(UpdateABC[T]):
 
     _client: AsyncClient
 
-    def __init__(self, client: AsyncClient, table: sql.Composable) -> None:
-        super().__init__(table)
+    def __init__(
+        self,
+        client: AsyncClient,
+        table: sql.Composable,
+        return_constructor: Type[T]
+    ) -> None:
+        super().__init__(table, return_constructor)
         self._client = client
 
-    async def one_by_id(self, id_value: str, changes: Dict[str, Any]) -> T:
+    async def one_by_id(self, id_value: UUID, changes: Dict[str, Any]) -> T:
         """Apply changes to row with given id.
 
         Arguments:
@@ -79,12 +100,14 @@ class AsyncUpdate(UpdateABC[T]):
         Returns:
             full value of row updated
         """
-        result: List[T] = await self._client.execute_and_return(
-            self._query_one_by_id(id_value, changes))
+        query_result: List[RealDictRow] = \
+            await self._client.execute_and_return(
+                self._query_one_by_id(id_value, changes))
 
-        ensure_exactly_one(result)
+        ensure_exactly_one(query_result)
+        result: T = self._return_constructor(**query_result[0])
 
-        return result[0]
+        return result
 
 
 class AsyncDelete(DeleteABC[T]):
@@ -94,19 +117,26 @@ class AsyncDelete(DeleteABC[T]):
 
     _client: AsyncClient
 
-    def __init__(self, client: AsyncClient, table: sql.Composable) -> None:
-        super().__init__(table)
+    def __init__(
+        self,
+        client: AsyncClient,
+        table: sql.Composable,
+        return_constructor: Type[T]
+    ) -> None:
+        super().__init__(table, return_constructor)
         self._client = client
 
     async def one_by_id(self, id_value: str) -> T:
         """Delete one record with matching ID."""
-        result: List[T] = await self._client.execute_and_return(
-            self._query_one_by_id(id_value))
+        query_result: List[RealDictRow] = \
+            await self._client.execute_and_return(
+                self._query_one_by_id(id_value))
 
         # Should only return one item from DB
-        ensure_exactly_one(result)
+        ensure_exactly_one(query_result)
+        result = self._return_constructor(**query_result[0])
 
-        return result[0]
+        return result
 
 
 class AsyncModel(ModelABC[T]):
@@ -122,19 +152,22 @@ class AsyncModel(ModelABC[T]):
     _update: AsyncUpdate[T]
     _delete: AsyncDelete[T]
 
-    # PENDS python 3.9 support in pylint
-    # pylint: disable=unsubscriptable-object
     def __init__(
         self,
         client: AsyncClient,
         table: str,
+        return_constructor: Type[T],
     ) -> None:
         super().__init__(client, table)
 
-        self._create = AsyncCreate[T](self.client, self.table)
-        self._read = AsyncRead[T](self.client, self.table)
-        self._update = AsyncUpdate[T](self.client, self.table)
-        self._delete = AsyncDelete[T](self.client, self.table)
+        self._create = AsyncCreate[T](
+            self.client, self.table, return_constructor)
+        self._read = AsyncRead[T](
+            self.client, self.table, return_constructor)
+        self._update = AsyncUpdate[T](
+            self.client, self.table, return_constructor)
+        self._delete = AsyncDelete[T](
+            self.client, self.table, return_constructor)
 
     @property
     def create(self) -> AsyncCreate[T]:

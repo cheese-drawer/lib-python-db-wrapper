@@ -134,7 +134,7 @@ class UpdateABC(CRUDABC[T]):
 
     def _query_one_by_id(
         self,
-        id_value: str,
+        id_value: UUID,
         changes: Dict[str, Any]
     ) -> sql.Composed:
         """Build Query to apply changes to row with given id."""
@@ -157,7 +157,7 @@ class UpdateABC(CRUDABC[T]):
         ).format(
             table=self._table,
             changes=compose_changes(changes),
-            id_value=sql.Literal(id_value),
+            id_value=sql.Literal(str(id_value)),
         )
 
         return query

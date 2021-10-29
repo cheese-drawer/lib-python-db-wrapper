@@ -34,12 +34,9 @@ from db_wrapper.model.base import (
 )
 
 
-# Generic doesn't need a more descriptive name
-# pylint: disable=invalid-name
-T = TypeVar('T', bound=ModelData)
-
-
-def setupAsync(query_result: List[T]) -> Tuple[AsyncModel[T], AsyncClient]:
+def setupAsync(
+    query_result: List[ModelData]
+) -> Tuple[AsyncModel[ModelData], AsyncClient]:
     """Setup helper that returns instances of both a Model & a Client.
 
     Mocks the execute_and_return method on the Client instance to skip
@@ -60,12 +57,14 @@ def setupAsync(query_result: List[T]) -> Tuple[AsyncModel[T], AsyncClient]:
         return_value=query_result)
 
     # init a real model with mocked client
-    model = AsyncModel[Any](client, 'test')
+    model = AsyncModel[Any](client, 'test', ModelData)
 
     return model, client
 
 
-def setupSync(query_result: List[T]) -> Tuple[SyncModel[T], SyncClient]:
+def setupSync(
+    query_result: List[ModelData]
+) -> Tuple[SyncModel[ModelData], SyncClient]:
     """Setup helper that returns instances of both a Model & a Client.
 
     Mocks the execute_and_return method on the Client instance to skip
@@ -86,7 +85,7 @@ def setupSync(query_result: List[T]) -> Tuple[SyncModel[T], SyncClient]:
         return_value=query_result)
 
     # init a real model with mocked client
-    model = SyncModel[Any](client, 'test')
+    model = SyncModel[ModelData](client, 'test', ModelData)
 
     return model, client
 
@@ -100,8 +99,8 @@ class TestReadOneById(TestCase):
         async_model, async_client = setupAsync([item])
         sync_model, sync_client = setupSync([item])
 
-        await async_model.read.one_by_id(str(item.id))
-        sync_model.read.one_by_id(str(item.id))
+        await async_model.read.one_by_id(item.id)
+        sync_model.read.one_by_id(item.id)
 
         async_query_composed = cast(
             helpers.AsyncMock, async_client.execute_and_return).call_args[0][0]
@@ -124,8 +123,8 @@ class TestReadOneById(TestCase):
         item = ModelData(id=uuid4())
         async_model, _ = setupAsync([item])
         sync_model, _ = setupSync([item])
-        results = [await async_model.read.one_by_id(str(item.id)),
-                   sync_model.read.one_by_id(str(item.id))]
+        results = [await async_model.read.one_by_id(item.id),
+                   sync_model.read.one_by_id(item.id)]
 
         for result in results:
             with self.subTest():
@@ -139,11 +138,11 @@ class TestReadOneById(TestCase):
 
         with self.subTest():
             with self.assertRaises(UnexpectedMultipleResults):
-                await async_model.read.one_by_id(str(item.id))
+                await async_model.read.one_by_id(item.id)
 
         with self.subTest():
             with self.assertRaises(UnexpectedMultipleResults):
-                sync_model.read.one_by_id(str(item.id))
+                sync_model.read.one_by_id(item.id)
 
     @ helpers.async_test
     async def test_it_raises_exception_if_no_result_to_return(self) -> None:
@@ -265,8 +264,8 @@ class TestUpdateOne(TestCase):
         sync_model, _ = setupSync([updated])
 
         results = [
-            await async_model.update.one_by_id(str(item.id), {'b': 'c'}),
-            sync_model.update.one_by_id(str(item.id), {'b': 'c'})
+            await async_model.update.one_by_id(item.id, {'b': 'c'}),
+            sync_model.update.one_by_id(item.id, {'b': 'c'})
         ]
 
         for result in results:

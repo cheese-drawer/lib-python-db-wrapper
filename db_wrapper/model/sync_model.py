@@ -88,7 +88,7 @@ class SyncUpdate(UpdateABC[T]):
         super().__init__(table, return_constructor)
         self._client = client
 
-    def one_by_id(self, id_value: str, changes: Dict[str, Any]) -> T:
+    def one_by_id(self, id_value: UUID, changes: Dict[str, Any]) -> T:
         """Apply changes to row with given id.
 
         Arguments:

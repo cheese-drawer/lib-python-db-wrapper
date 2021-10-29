@@ -89,7 +89,7 @@ class AsyncUpdate(UpdateABC[T]):
         super().__init__(table, return_constructor)
         self._client = client
 
-    async def one_by_id(self, id_value: str, changes: Dict[str, Any]) -> T:
+    async def one_by_id(self, id_value: UUID, changes: Dict[str, Any]) -> T:
         """Apply changes to row with given id.
 
         Arguments:

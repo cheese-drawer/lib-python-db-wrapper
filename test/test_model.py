@@ -12,6 +12,7 @@ from typing import (
     Any,
     List,
     Tuple,
+    Type,
     TypeVar,
 )
 from uuid import uuid4
@@ -34,9 +35,13 @@ from db_wrapper.model.base import (
 )
 
 
+T = TypeVar('T', bound=ModelData)
+
+
 def setupAsync(
-    query_result: List[ModelData]
-) -> Tuple[AsyncModel[ModelData], AsyncClient]:
+    query_result: List[T],
+    model_data: Type[T]
+) -> Tuple[AsyncModel[T], AsyncClient]:
     """Setup helper that returns instances of both a Model & a Client.
 
     Mocks the execute_and_return method on the Client instance to skip
@@ -54,17 +59,18 @@ def setupAsync(
 
     # mock client's sql execution method
     client.execute_and_return = helpers.AsyncMock(  # type:ignore
-        return_value=query_result)
+        return_value=[i.dict() for i in query_result])
 
     # init a real model with mocked client
-    model = AsyncModel[Any](client, 'test', ModelData)
+    model = AsyncModel[Any](client, 'test', model_data)
 
     return model, client
 
 
 def setupSync(
-    query_result: List[ModelData]
-) -> Tuple[SyncModel[ModelData], SyncClient]:
+    query_result: List[T],
+    model_data: Type[T]
+) -> Tuple[SyncModel[T], SyncClient]:
     """Setup helper that returns instances of both a Model & a Client.
 
     Mocks the execute_and_return method on the Client instance to skip
@@ -82,10 +88,10 @@ def setupSync(
 
     # mock client's sql execution method
     client.execute_and_return = helpers.MagicMock(  # type:ignore
-        return_value=query_result)
+        return_value=[i.dict() for i in query_result])
 
     # init a real model with mocked client
-    model = SyncModel[ModelData](client, 'test', ModelData)
+    model = SyncModel[T](client, 'test', model_data)
 
     return model, client
 
@@ -96,8 +102,8 @@ class TestReadOneById(TestCase):
     @helpers.async_test
     async def test_it_correctly_builds_query_with_given_id(self) -> None:
         item = ModelData(id=uuid4())
-        async_model, async_client = setupAsync([item])
-        sync_model, sync_client = setupSync([item])
+        async_model, async_client = setupAsync([item], ModelData)
+        sync_model, sync_client = setupSync([item], ModelData)
 
         await async_model.read.one_by_id(item.id)
         sync_model.read.one_by_id(item.id)
@@ -121,8 +127,8 @@ class TestReadOneById(TestCase):
     @helpers.async_test
     async def test_it_returns_a_single_result(self) -> None:
         item = ModelData(id=uuid4())
-        async_model, _ = setupAsync([item])
-        sync_model, _ = setupSync([item])
+        async_model, _ = setupAsync([item], ModelData)
+        sync_model, _ = setupSync([item], ModelData)
         results = [await async_model.read.one_by_id(item.id),
                    sync_model.read.one_by_id(item.id)]
 
@@ -133,8 +139,8 @@ class TestReadOneById(TestCase):
     @helpers.async_test
     async def test_it_raises_exception_if_more_than_one_result(self) -> None:
         item = ModelData(id=uuid4())
-        async_model, _ = setupAsync([item, item])
-        sync_model, _ = setupSync([item, item])
+        async_model, _ = setupAsync([item, item], ModelData)
+        sync_model, _ = setupSync([item, item], ModelData)
 
         with self.subTest():
             with self.assertRaises(UnexpectedMultipleResults):
@@ -146,18 +152,20 @@ class TestReadOneById(TestCase):
 
     @ helpers.async_test
     async def test_it_raises_exception_if_no_result_to_return(self) -> None:
+        empty_async: List[ModelData] = []
+        empty_sync: List[ModelData] = []
         async_model: AsyncModel[ModelData]
         sync_model: SyncModel[ModelData]
-        async_model, _ = setupAsync([])
-        sync_model, _ = setupSync([])
+        async_model, _ = setupAsync(empty_async, ModelData)
+        sync_model, _ = setupSync(empty_sync, ModelData)
 
         with self.subTest():
             with self.assertRaises(NoResultFound):
-                await async_model.read.one_by_id('id')
+                await async_model.read.one_by_id(uuid4())
 
         with self.subTest():
             with self.assertRaises(NoResultFound):
-                sync_model.read.one_by_id('id')
+                sync_model.read.one_by_id(uuid4())
 
 
 class TestCreateOne(TestCase):
@@ -175,8 +183,8 @@ class TestCreateOne(TestCase):
             'a': 'a',
             'b': 'b',
         })
-        async_model, async_client = setupAsync([item])
-        sync_model, sync_client = setupSync([item])
+        async_model, async_client = setupAsync([item], TestCreateOne.Item)
+        sync_model, sync_client = setupSync([item], TestCreateOne.Item)
 
         await async_model.create.one(item)
         sync_model.create.one(item)
@@ -203,8 +211,8 @@ class TestCreateOne(TestCase):
             'a': 'a',
             'b': 'b',
         })
-        async_model, _ = setupAsync([item])
-        sync_model, _ = setupSync([item])
+        async_model, _ = setupAsync([item], TestCreateOne.Item)
+        sync_model, _ = setupSync([item], TestCreateOne.Item)
 
         results = [await async_model.create.one(item),
                    sync_model.create.one(item)]
@@ -229,11 +237,11 @@ class TestUpdateOne(TestCase):
             'a': 'a',
             'b': 'b',
         })
-        async_model, async_client = setupAsync([item])
-        sync_model, sync_client = setupSync([item])
+        async_model, async_client = setupAsync([item], TestUpdateOne.Item)
+        sync_model, sync_client = setupSync([item], TestUpdateOne.Item)
 
-        await async_model.update.one_by_id(str(item.id), {'b': 'c'})
-        sync_model.update.one_by_id(str(item.id), {'b': 'c'})
+        await async_model.update.one_by_id(item.id, {'b': 'c'})
+        sync_model.update.one_by_id(item.id, {'b': 'c'})
 
         async_query_composed = cast(
             helpers.AsyncMock, async_client.execute_and_return).call_args[0][0]
@@ -260,8 +268,8 @@ class TestUpdateOne(TestCase):
         })
         # mock result
         updated = TestUpdateOne.Item(**{**item.dict(), 'b': 'c'})
-        async_model, _ = setupAsync([updated])
-        sync_model, _ = setupSync([updated])
+        async_model, _ = setupAsync([updated], TestUpdateOne.Item)
+        sync_model, _ = setupSync([updated], TestUpdateOne.Item)
 
         results = [
             await async_model.update.one_by_id(item.id, {'b': 'c'}),
@@ -288,8 +296,8 @@ class TestDeleteOneById(TestCase):
             'a': 'a',
             'b': 'b',
         })
-        async_model, async_client = setupAsync([item])
-        sync_model, sync_client = setupSync([item])
+        async_model, async_client = setupAsync([item], TestDeleteOneById.Item)
+        sync_model, sync_client = setupSync([item], TestDeleteOneById.Item)
 
         await async_model.delete.one_by_id(str(item.id))
         sync_model.delete.one_by_id(str(item.id))
@@ -316,8 +324,8 @@ class TestDeleteOneById(TestCase):
             'a': 'a',
             'b': 'b',
         })
-        async_model, _ = setupAsync([item])
-        sync_model, _ = setupSync([item])
+        async_model, _ = setupAsync([item], TestDeleteOneById.Item)
+        sync_model, _ = setupSync([item], TestDeleteOneById.Item)
 
         results = [await async_model.delete.one_by_id(str(item.id)),
                    sync_model.delete.one_by_id(str(item.id))]
@@ -347,8 +355,8 @@ class TestExtendingModel(TestCase):
             read: AsyncReadExtended
 
             def __init__(self, client: AsyncClient) -> None:
-                super().__init__(client, 'extended_model')
-                self.read = AsyncReadExtended(self.client, self.table)
+                super().__init__(client, 'extended_model', Item)
+                self.read = AsyncReadExtended(self.client, self.table, Item)
 
         class SyncReadExtended(SyncRead[Item]):
             """Extending Read with additional query."""
@@ -361,11 +369,11 @@ class TestExtendingModel(TestCase):
             read: SyncReadExtended
 
             def __init__(self, client: SyncClient) -> None:
-                super().__init__(client, 'extended_model')
-                self.read = SyncReadExtended(self.client, self.table)
+                super().__init__(client, 'extended_model', Item)
+                self.read = SyncReadExtended(self.client, self.table, Item)
 
-        _, async_client = setupAsync([Item(**{"id": uuid4()})])
-        _, sync_client = setupSync([Item(**{"id": uuid4()})])
+        _, async_client = setupAsync([Item(**{"id": uuid4()})], Item)
+        _, sync_client = setupSync([Item(**{"id": uuid4()})], Item)
         self.models = [AsyncExtendedModel(async_client),
                        SyncExtendedModel(sync_client)]
 

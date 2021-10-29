@@ -9,7 +9,7 @@ from typing import Any, List
 from db_wrapper import SyncClient, ConnectionParameters
 from db_wrapper.model import SyncModel as Model
 
-from models import (
+from example.models import (
     AModel,
     ExtendedModel,
     ExtendedModelData,
@@ -39,7 +39,7 @@ conn_params = ConnectionParameters(
     database=os.getenv('DB_NAME', 'dev'))
 client = SyncClient(conn_params)
 
-a_model = Model[AModel](client, 'a_model')
+a_model = Model[AModel](client, 'a_model', AModel)
 extended_model = ExtendedModel(client)
 
 
@@ -122,13 +122,14 @@ def run() -> None:
         new_id = create_a_model_record()
         created_a_model = read_a_model(new_id)
         create_extended_models()
-        extended_models = read_extended_models()
+        created_extended_models = read_extended_models()
     finally:
         client.disconnect()
 
     # Print results to stdout
-    print(json.dumps(created_a_model, cls=UUIDJsonEncoder))
-    print(json.dumps(extended_models, cls=UUIDJsonEncoder))
+    print(json.dumps(created_a_model.dict(), cls=UUIDJsonEncoder))
+    print(json.dumps([item.dict()
+          for item in created_extended_models], cls=UUIDJsonEncoder))
 
 
 if __name__ == '__main__':

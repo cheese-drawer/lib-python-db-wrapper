@@ -7,14 +7,14 @@ from psycopg2.extras import RealDictRow
 
 from db_wrapper.client import SyncClient
 from .base import (
+    ensure_exactly_one,
+    sql,
     T,
     CreateABC,
     DeleteABC,
     ReadABC,
     UpdateABC,
     ModelABC,
-    ensure_exactly_one,
-    sql,
 )
 
 
@@ -150,8 +150,6 @@ class SyncModel(ModelABC[T]):
     _update: SyncUpdate[T]
     _delete: SyncDelete[T]
 
-    # PENDS python 3.9 support in pylint
-    # pylint: disable=unsubscriptable-object
     def __init__(
         self,
         client: SyncClient,
@@ -162,7 +160,8 @@ class SyncModel(ModelABC[T]):
 
         self._create = SyncCreate[T](
             self.client, self.table, return_constructor)
-        self._read = SyncRead[T](self.client, self.table, return_constructor)
+        self._read = SyncRead[T](
+            self.client, self.table, return_constructor)
         self._update = SyncUpdate[T](
             self.client, self.table, return_constructor)
         self._delete = SyncDelete[T](

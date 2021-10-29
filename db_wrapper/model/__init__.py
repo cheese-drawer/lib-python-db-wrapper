@@ -1,5 +1,6 @@
 """Convenience objects to simplify database interactions w/ given interface."""
 
+from psycopg2.extras import RealDictRow
 from .async_model import (
     AsyncModel,
     AsyncCreate,

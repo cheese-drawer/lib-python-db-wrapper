@@ -3,12 +3,13 @@
 # std lib dependencies
 from __future__ import annotations
 from typing import (
-    TypeVar,
-    Generic,
     Any,
-    Tuple,
-    List,
     Dict,
+    Generic,
+    List,
+    Tuple,
+    Type,
+    TypeVar,
 )
 from uuid import UUID
 
@@ -54,7 +55,7 @@ class NoResultFound(Exception):
         super().__init__(self, message)
 
 
-def ensure_exactly_one(result: List[T]) -> None:
+def ensure_exactly_one(result: List[Any]) -> None:
     """Raise appropriate Exceptions if list longer than 1."""
     if len(result) > 1:
         raise UnexpectedMultipleResults(result)
@@ -62,15 +63,27 @@ def ensure_exactly_one(result: List[T]) -> None:
         raise NoResultFound()
 
 
-class CreateABC(Generic[T]):
-    """Encapsulate Create operations for Model.read."""
+class CRUDABC(Generic[T]):
+    """Encapsulate object creation behavior for all CRUD objects."""
 
     # pylint: disable=too-few-public-methods
 
     _table: sql.Composable
+    _return_constructor: Type[T]
 
-    def __init__(self, table: sql.Composable) -> None:
+    def __init__(
+        self,
+        table: sql.Composable,
+        return_constructor: Type[T]
+    ) -> None:
         self._table = table
+        self._return_constructor = return_constructor
+
+
+class CreateABC(CRUDABC[T]):
+    """Encapsulate Create operations for Model.create."""
+
+    # pylint: disable=too-few-public-methods
 
     def _query_one(self, item: T) -> sql.Composed:
         """Build query to create one new record with a given item."""
@@ -95,15 +108,10 @@ class CreateABC(Generic[T]):
         return query
 
 
-class ReadABC(Generic[T]):
+class ReadABC(CRUDABC[T]):
     """Encapsulate Read operations for Model.read."""
 
     # pylint: disable=too-few-public-methods
-
-    _table: sql.Composable
-
-    def __init__(self, table: sql.Composable) -> None:
-        self._table = table
 
     def _query_one_by_id(self, id_value: UUID) -> sql.Composed:
         """Build query to read a row by it's id."""
@@ -119,15 +127,10 @@ class ReadABC(Generic[T]):
         return query
 
 
-class UpdateABC(Generic[T]):
+class UpdateABC(CRUDABC[T]):
     """Encapsulate Update operations for Model.read."""
 
     # pylint: disable=too-few-public-methods
-
-    _table: sql.Composable
-
-    def __init__(self, table: sql.Composable) -> None:
-        self._table = table
 
     def _query_one_by_id(
         self,
@@ -160,15 +163,10 @@ class UpdateABC(Generic[T]):
         return query
 
 
-class DeleteABC(Generic[T]):
+class DeleteABC(CRUDABC[T]):
     """Encapsulate Delete operations for Model.read."""
 
     # pylint: disable=too-few-public-methods
-
-    _table: sql.Composable
-
-    def __init__(self, table: sql.Composable) -> None:
-        self._table = table
 
     def _query_one_by_id(self, id_value: str) -> sql.Composed:
         """Build query to delete one record with matching ID."""

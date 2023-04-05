@@ -1,1 +1,1 @@
-https://github.com/cheese-drawer/lib-python-db-wrapper/releases/download/2.3.0/db_wrapper-2.3.0-py3-none-any.whl
+-e ../

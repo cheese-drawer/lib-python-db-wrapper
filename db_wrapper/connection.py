@@ -41,18 +41,18 @@ async def _try_connect(
     dsn = f"dbname={database} user={user} password={password} " \
           f"host={host} port={port}"
 
+    # return await aiopg.create_pool(dsn)
+
     # PENDS python 3.9 support in pylint
     # pylint: disable=unsubscriptable-object
-    connection: Optional[aiopg.Connection] = None
+    pool: Optional[aiopg.Connection] = None
 
     LOGGER.info(f"Attempting to connect to database {database} as "
                 f"{user}@{host}:{port}...")
 
-    while connection is None:
+    while pool is None:
         try:
-            connection = await aiopg.connect(
-                dsn,
-                cursor_factory=RealDictCursor)
+            pool = await aiopg.create_pool(dsn)
         except psycopg2OpError as err:
             print(type(err))
             if retries > 12:
@@ -67,7 +67,7 @@ async def _try_connect(
             await asyncio.sleep(5)
             return await _try_connect(connection_params, retries + 1)
 
-    return connection
+    return pool
 
 
 def _sync_try_connect(
@@ -112,10 +112,10 @@ def _sync_try_connect(
 
 # PENDS python 3.9 support in pylint
 # pylint: disable=unsubscriptable-object
-async def connect(
+async def get_pool(
     connection_params: ConnectionParameters
-) -> aiopg.Connection:
-    """Establish database connection."""
+) -> aiopg.Pool:
+    """Establish database connection pool."""
     return await _try_connect(connection_params)
 
 

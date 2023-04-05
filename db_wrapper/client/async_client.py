@@ -12,10 +12,10 @@ from typing import (
     Dict)
 
 import aiopg
-from psycopg2.extras import register_uuid, RealDictRow
+from psycopg2.extras import register_uuid, RealDictCursor, RealDictRow  # type: ignore
 from psycopg2 import sql
 
-from db_wrapper.connection import ConnectionParameters, connect
+from db_wrapper.connection import ConnectionParameters, get_pool
 
 # add uuid support to psycopg2 & Postgres
 register_uuid()
@@ -33,18 +33,19 @@ class AsyncClient:
     """
 
     _connection_params: ConnectionParameters
-    _connection: aiopg.Connection
+    _pool: aiopg.Pool
 
     def __init__(self, connection_params: ConnectionParameters) -> None:
         self._connection_params = connection_params
 
     async def connect(self) -> None:
-        """Connect to the database."""
-        self._connection = await connect(self._connection_params)
+        """Create a database connection pool."""
+        self._pool = await get_pool(self._connection_params)
 
     async def disconnect(self) -> None:
-        """Disconnect from the database."""
-        await self._connection.close()
+        """Close database connection pool."""
+        self._pool.close()
+        await self._pool.wait_closed()
 
     # PENDS python 3.9 support in pylint
     # pylint: disable=unsubscriptable-object
@@ -81,7 +82,7 @@ class AsyncClient:
         Returns:
             None
         """
-        async with self._connection.cursor() as cursor:
+        with (await self._pool.cursor(cursor_factory=RealDictCursor) ) as cursor:
             await self._execute_query(cursor, query, params)
 
     # PENDS python 3.9 support in pylint
@@ -101,7 +102,7 @@ class AsyncClient:
         Returns:
             List containing all the rows that matched the query.
         """
-        async with self._connection.cursor() as cursor:
+        with (await self._pool.cursor(cursor_factory=RealDictCursor) ) as cursor:
             await self._execute_query(cursor, query, params)
 
             result: List[RealDictRow] = await cursor.fetchall()
